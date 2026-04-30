@@ -8,7 +8,7 @@ This package is used by:
 - `niceneasy-agents`
 - future bounded widgets in `niceneasy`
 
-Corporate design is defined outside this package in `../niceneasy/docs/corporate-design.md`.
+Corporate design is defined outside this package in `../niceneasy-brand/docs/corporate-design.md`.
 
 This package owns API and domain contracts only:
 
