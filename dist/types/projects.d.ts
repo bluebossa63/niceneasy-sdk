@@ -105,6 +105,9 @@ export interface ProjectDraftInput {
     approvalModel: string;
     kickoffTaskKey?: string;
 }
+export interface WorkItemStatusInput {
+    status: WorkItemStatus;
+}
 export interface ProjectListEnvelope {
     items: ProjectSummary[];
     total: number;

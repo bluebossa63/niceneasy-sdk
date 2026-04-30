@@ -1,4 +1,4 @@
-import type { AgentCost, AgentInfo, ChatRequest, ChatResponse, Conversation, ConversationMessage, CostOverview, ErrorOverview, HealthResponse, LoopInvocation, LoopStatus, Notification, ReadyResponse, RequestEvaluationDetail, RequestEvaluationSummary, RunEvent, RunSummary, SystemOverview, TaskLineageResponse, TaskListResponse, TaskRequest, TaskResponse } from '../types/index.js';
+import type { AgentCost, AgentInfo, ApprovalDecision, ApprovalDetail, ChatRequest, ChatResponse, CommandCenterSummary, Conversation, ConversationMessage, CostOverview, ErrorOverview, FleetSummary, HealthResponse, LoopInvocation, LoopStatus, ModelListEnvelope, PermissionListEnvelope, PermissionResolution, ProjectDetail, ProjectDraftInput, ProjectSummary, Notification, ReadyResponse, RequestEvaluationDetail, RequestEvaluationSummary, RunEvent, RunSummary, SystemOverview, TaskLineageResponse, TaskListResponse, TaskRequest, TaskResponse, ToolListEnvelope, WorkItem, WorkItemStatus, WorkspaceContext } from '../types/index.js';
 export declare class ApiError extends Error {
     readonly status: number;
     readonly statusText: string;
@@ -24,6 +24,8 @@ export declare class ApiClient {
     readyCheck(): Promise<ReadyResponse>;
     listAgents(): Promise<AgentInfo[]>;
     getAgent(name: string): Promise<AgentInfo>;
+    getModels(): Promise<ModelListEnvelope>;
+    getTools(agent?: string): Promise<ToolListEnvelope>;
     chat(req: ChatRequest, signal?: AbortSignal): Promise<ChatResponse>;
     createTask(req: TaskRequest): Promise<TaskResponse>;
     listTasks(): Promise<TaskResponse[]>;
@@ -40,6 +42,18 @@ export declare class ApiClient {
     ackNotification(id: string): Promise<void>;
     getOverview(): Promise<SystemOverview>;
     getErrors(): Promise<ErrorOverview>;
+    getWorkspace(): Promise<WorkspaceContext>;
+    getCommandCenterSummary(): Promise<CommandCenterSummary>;
+    getProjects(): Promise<ProjectSummary[]>;
+    getProject(projectId: string): Promise<ProjectDetail>;
+    createProjectDraft(input: ProjectDraftInput): Promise<ProjectSummary>;
+    moveWorkItem(projectId: string, itemId: string, targetStatus: WorkItemStatus): Promise<WorkItem>;
+    getApprovals(): Promise<ApprovalDetail[]>;
+    getApproval(approvalId: string): Promise<ApprovalDetail>;
+    decideApproval(approvalId: string, decision: ApprovalDecision, comment?: string): Promise<ApprovalDetail>;
+    getFleets(): Promise<FleetSummary[]>;
+    getPermissions(): Promise<PermissionListEnvelope>;
+    resolvePermission(resolution: PermissionResolution): Promise<PermissionResolution>;
     getRequestEvaluations(limit?: number): Promise<RequestEvaluationSummary[]>;
     getRequestEvaluation(id: string): Promise<RequestEvaluationDetail>;
     getLoopInvocations(limit?: number): Promise<LoopInvocation[]>;

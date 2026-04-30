@@ -41,6 +41,15 @@ export interface ConversationMessage {
   model?: string
 }
 
+export interface PageEnvelope<T> {
+  items: T[]
+  total: number
+  limit?: number
+  offset?: number
+  hasMore?: boolean
+  has_more?: boolean
+}
+
 export interface Notification {
   id: number
   task_id: string

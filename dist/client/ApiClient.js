@@ -137,6 +137,13 @@ export class ApiClient {
     getAgent(name) {
         return this.request(`/api/agents/${encodeURIComponent(name)}`);
     }
+    getModels() {
+        return this.request('/api/models');
+    }
+    getTools(agent) {
+        const query = agent ? `?agent=${encodeURIComponent(agent)}` : '';
+        return this.request(`/api/tools${query}`);
+    }
     chat(req, signal) {
         return this.request('/api/chat', {
             method: 'POST',
@@ -189,6 +196,57 @@ export class ApiClient {
     }
     getErrors() {
         return this.request('/api/errors');
+    }
+    getWorkspace() {
+        return this.request('/api/workspace');
+    }
+    getCommandCenterSummary() {
+        return this.request('/api/workspace/summary');
+    }
+    async getProjects() {
+        const envelope = await this.request('/api/projects');
+        return envelope.items;
+    }
+    getProject(projectId) {
+        return this.request(`/api/projects/${encodeURIComponent(projectId)}`);
+    }
+    createProjectDraft(input) {
+        return this.request('/api/projects', {
+            method: 'POST',
+            body: JSON.stringify(input),
+        });
+    }
+    moveWorkItem(projectId, itemId, targetStatus) {
+        return this.request(`/api/projects/${encodeURIComponent(projectId)}/work-items/${encodeURIComponent(itemId)}/status`, {
+            method: 'POST',
+            body: JSON.stringify({ status: targetStatus }),
+        });
+    }
+    async getApprovals() {
+        const envelope = await this.request('/api/approvals');
+        return envelope.items;
+    }
+    getApproval(approvalId) {
+        return this.request(`/api/approvals/${encodeURIComponent(approvalId)}`);
+    }
+    decideApproval(approvalId, decision, comment) {
+        const input = comment !== undefined ? { decision, comment } : { decision };
+        return this.request(`/api/approvals/${encodeURIComponent(approvalId)}/decision`, {
+            method: 'POST',
+            body: JSON.stringify(input),
+        });
+    }
+    getFleets() {
+        return this.request('/api/fleets');
+    }
+    getPermissions() {
+        return this.request('/api/permissions');
+    }
+    resolvePermission(resolution) {
+        return this.request(`/api/permissions/${encodeURIComponent(resolution.id)}/decision`, {
+            method: 'POST',
+            body: JSON.stringify(resolution),
+        });
     }
     getRequestEvaluations(limit = 20) {
         return this.request(`/api/request_evaluations?limit=${encodeURIComponent(String(limit))}`);

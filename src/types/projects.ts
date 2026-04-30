@@ -118,6 +118,10 @@ export interface ProjectDraftInput {
   kickoffTaskKey?: string
 }
 
+export interface WorkItemStatusInput {
+  status: WorkItemStatus
+}
+
 export interface ProjectListEnvelope {
   items: ProjectSummary[]
   total: number

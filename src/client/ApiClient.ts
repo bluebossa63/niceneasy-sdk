@@ -1,15 +1,28 @@
 import type {
   AgentCost,
   AgentInfo,
+  ApprovalDecision,
+  ApprovalDecisionInput,
+  ApprovalDetail,
+  ApprovalListEnvelope,
   ChatRequest,
   ChatResponse,
+  CommandCenterSummary,
   Conversation,
   ConversationMessage,
   CostOverview,
   ErrorOverview,
+  FleetSummary,
   HealthResponse,
   LoopInvocation,
   LoopStatus,
+  ModelListEnvelope,
+  PermissionListEnvelope,
+  PermissionResolution,
+  ProjectDetail,
+  ProjectDraftInput,
+  ProjectListEnvelope,
+  ProjectSummary,
   Notification,
   ReadyResponse,
   RequestEvaluationDetail,
@@ -23,6 +36,10 @@ import type {
   TaskListResponse,
   TaskRequest,
   TaskResponse,
+  ToolListEnvelope,
+  WorkItem,
+  WorkItemStatus,
+  WorkspaceContext,
 } from '../types/index.js'
 import { adaptLegacyEvent } from '../types/index.js'
 
@@ -203,6 +220,15 @@ export class ApiClient {
     return this.request(`/api/agents/${encodeURIComponent(name)}`)
   }
 
+  getModels(): Promise<ModelListEnvelope> {
+    return this.request('/api/models')
+  }
+
+  getTools(agent?: string): Promise<ToolListEnvelope> {
+    const query = agent ? `?agent=${encodeURIComponent(agent)}` : ''
+    return this.request(`/api/tools${query}`)
+  }
+
   chat(req: ChatRequest, signal?: AbortSignal): Promise<ChatResponse> {
     return this.request('/api/chat', {
       method: 'POST',
@@ -270,6 +296,73 @@ export class ApiClient {
 
   getErrors(): Promise<ErrorOverview> {
     return this.request('/api/errors')
+  }
+
+  getWorkspace(): Promise<WorkspaceContext> {
+    return this.request('/api/workspace')
+  }
+
+  getCommandCenterSummary(): Promise<CommandCenterSummary> {
+    return this.request('/api/workspace/summary')
+  }
+
+  async getProjects(): Promise<ProjectSummary[]> {
+    const envelope = await this.request<ProjectListEnvelope>('/api/projects')
+    return envelope.items
+  }
+
+  getProject(projectId: string): Promise<ProjectDetail> {
+    return this.request(`/api/projects/${encodeURIComponent(projectId)}`)
+  }
+
+  createProjectDraft(input: ProjectDraftInput): Promise<ProjectSummary> {
+    return this.request('/api/projects', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    })
+  }
+
+  moveWorkItem(projectId: string, itemId: string, targetStatus: WorkItemStatus): Promise<WorkItem> {
+    return this.request(`/api/projects/${encodeURIComponent(projectId)}/work-items/${encodeURIComponent(itemId)}/status`, {
+      method: 'POST',
+      body: JSON.stringify({ status: targetStatus }),
+    })
+  }
+
+  async getApprovals(): Promise<ApprovalDetail[]> {
+    const envelope = await this.request<ApprovalListEnvelope>('/api/approvals')
+    return envelope.items
+  }
+
+  getApproval(approvalId: string): Promise<ApprovalDetail> {
+    return this.request(`/api/approvals/${encodeURIComponent(approvalId)}`)
+  }
+
+  decideApproval(
+    approvalId: string,
+    decision: ApprovalDecision,
+    comment?: string,
+  ): Promise<ApprovalDetail> {
+    const input: ApprovalDecisionInput = comment !== undefined ? { decision, comment } : { decision }
+    return this.request(`/api/approvals/${encodeURIComponent(approvalId)}/decision`, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    })
+  }
+
+  getFleets(): Promise<FleetSummary[]> {
+    return this.request('/api/fleets')
+  }
+
+  getPermissions(): Promise<PermissionListEnvelope> {
+    return this.request('/api/permissions')
+  }
+
+  resolvePermission(resolution: PermissionResolution): Promise<PermissionResolution> {
+    return this.request(`/api/permissions/${encodeURIComponent(resolution.id)}/decision`, {
+      method: 'POST',
+      body: JSON.stringify(resolution),
+    })
   }
 
   getRequestEvaluations(limit = 20): Promise<RequestEvaluationSummary[]> {

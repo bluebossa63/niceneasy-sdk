@@ -32,3 +32,9 @@ export interface ApprovalListEnvelope {
   offset?: number
   hasMore?: boolean
 }
+
+export interface ApprovalDecisionInput {
+  decision: ApprovalDecision
+  comment?: string
+  resolution_comment?: string
+}
