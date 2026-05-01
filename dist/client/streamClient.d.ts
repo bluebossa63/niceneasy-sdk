@@ -1,7 +1,7 @@
-import { type StreamEvent } from '../types/stream.js';
+import { type SequencedStreamEvent } from '../types/stream.js';
 export interface StreamClientOptions {
     baseUrl?: string;
-    onEvent: (event: StreamEvent) => void;
+    onEvent: (event: SequencedStreamEvent) => void;
     onError?: (err: Error) => void;
     onDone?: () => void;
 }

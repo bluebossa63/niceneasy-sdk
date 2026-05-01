@@ -41,7 +41,7 @@ import type {
   WorkItemStatus,
   WorkspaceContext,
 } from '../types/index.js'
-import { adaptLegacyEvent } from '../types/index.js'
+import { adaptLegacyEvent, sequenceStreamEvent } from '../types/index.js'
 
 export class ApiError extends Error {
   public readonly status: number
@@ -390,11 +390,14 @@ export class ApiClient {
       options,
     )
     return response.events.map((event) => {
-      const payload = adaptLegacyEvent(JSON.parse(event.payload) as Record<string, unknown>)
+      const payload = adaptLegacyEvent(JSON.parse(event.payload) as Record<string, unknown>, {
+        seq: event.seq,
+        ts: event.ts,
+      })
       if (!payload) {
         throw new Error(`Unsupported run event payload type: ${event.event_type}`)
       }
-      return { ...event, payload }
+      return { ...event, payload: sequenceStreamEvent(payload, event.seq, event.ts) }
     })
   }
 

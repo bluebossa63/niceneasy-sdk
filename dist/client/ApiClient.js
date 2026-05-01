@@ -1,4 +1,4 @@
-import { adaptLegacyEvent } from '../types/index.js';
+import { adaptLegacyEvent, sequenceStreamEvent } from '../types/index.js';
 export class ApiError extends Error {
     status;
     statusText;
@@ -263,11 +263,14 @@ export class ApiClient {
     async fetchRunEvents(runId, options) {
         const response = await this.request(`/api/runs/${encodeURIComponent(runId)}/events`, options);
         return response.events.map((event) => {
-            const payload = adaptLegacyEvent(JSON.parse(event.payload));
+            const payload = adaptLegacyEvent(JSON.parse(event.payload), {
+                seq: event.seq,
+                ts: event.ts,
+            });
             if (!payload) {
                 throw new Error(`Unsupported run event payload type: ${event.event_type}`);
             }
-            return { ...event, payload };
+            return { ...event, payload: sequenceStreamEvent(payload, event.seq, event.ts) };
         });
     }
     async fetchRuns(options) {

@@ -1,8 +1,8 @@
-import { adaptLegacyEvents, type StreamEvent } from '../types/stream.js'
+import { adaptLegacyEvents, sequenceStreamEvent, type SequencedStreamEvent, type StreamEvent, type StreamEventContext } from '../types/stream.js'
 
 export interface StreamClientOptions {
   baseUrl?: string
-  onEvent: (event: StreamEvent) => void
+  onEvent: (event: SequencedStreamEvent) => void
   onError?: (err: Error) => void
   onDone?: () => void
 }
@@ -41,10 +41,20 @@ function parseSseBlock(block: string): Record<string, unknown> | null {
   return parsed && typeof parsed === 'object' ? parsed as Record<string, unknown> : null
 }
 
-function emitAdapted(raw: Record<string, unknown>, options: StreamClientOptions): boolean {
+function emitAdapted(
+  raw: Record<string, unknown>,
+  options: StreamClientOptions,
+  context: StreamEventContext,
+): boolean {
   let done = false
-  for (const event of adaptLegacyEvents(raw)) {
-    options.onEvent(event)
+  for (const event of adaptLegacyEvents(raw, context)) {
+    const sequenced = sequenceStreamEvent(event, context.seq ?? 0)
+    context.seq = sequenced.seq + 1
+    if (sequenced.run_id) context.run_id = sequenced.run_id
+    if (sequenced.session_id) context.session_id = sequenced.session_id
+    if (sequenced.message_id) context.message_id = sequenced.message_id
+    if (sequenced.tool_call_id) context.tool_call_id = sequenced.tool_call_id
+    options.onEvent(sequenced)
     if (event.type === 'finish') {
       done = true
     }
@@ -61,6 +71,7 @@ async function readStream(response: Response, options: StreamClientOptions): Pro
   const decoder = new TextDecoder()
   let buffer = ''
   let done = false
+  const context: StreamEventContext = { seq: 0, defaultMessageId: 'main' }
 
   for (;;) {
     const result = await reader.read()
@@ -80,7 +91,7 @@ async function readStream(response: Response, options: StreamClientOptions): Pro
       buffer = buffer.slice(separatorIndex + separatorLength)
       const raw = parseSseBlock(block)
       if (raw) {
-        done = emitAdapted(raw, options) || done
+        done = emitAdapted(raw, options, context) || done
       }
     }
   }
@@ -89,7 +100,7 @@ async function readStream(response: Response, options: StreamClientOptions): Pro
   if (tail !== '') {
     const raw = parseSseBlock(tail)
     if (raw) {
-      done = emitAdapted(raw, options) || done
+      done = emitAdapted(raw, options, context) || done
     }
   }
 

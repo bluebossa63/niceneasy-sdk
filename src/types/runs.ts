@@ -1,9 +1,9 @@
-import type { StreamEvent } from './stream.js'
+import type { SequencedStreamEvent, StreamEvent } from './stream.js'
 
 export interface RunEvent {
   seq: number
   event_type: string
-  payload: StreamEvent
+  payload: SequencedStreamEvent
   ts: string
 }
 

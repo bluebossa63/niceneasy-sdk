@@ -1,16 +1,33 @@
+export interface StreamEventMeta {
+  run_id?: string
+  session_id?: string
+  message_id?: string
+  tool_call_id?: string
+  seq?: number
+  ts?: string
+}
+
 export type StreamEvent =
-  | { type: 'session.created'; session_id: string; agent: string; model: string }
-  | { type: 'message.started'; message_id: string; role: 'assistant' | 'user' }
-  | { type: 'text.delta'; message_id: string; delta: string }
-  | { type: 'reasoning.delta'; message_id: string; delta: string }
-  | { type: 'tool.started'; tool_call_id: string; tool: string; args: unknown; iteration: number }
-  | { type: 'tool.output.delta'; tool_call_id: string; delta: string }
-  | { type: 'tool.completed'; tool_call_id: string; result_len: number; status: 'ok' | 'error'; duration_ms: number }
-  | { type: 'permission.requested'; permission_id: string; tool_call_id: string; tool: string; risk?: string }
-  | { type: 'permission.resolved'; permission_id: string; decision: 'once' | 'always' | 'deny' }
-  | { type: 'status'; message: string }
-  | { type: 'usage'; tokens_in: number; tokens_out: number; cost_usd: number }
-  | { type: 'finish'; session_id: string; duration_ms: number; run_id?: string; error?: string }
+  | (StreamEventMeta & { type: 'session.created'; session_id: string; agent: string; model: string })
+  | (StreamEventMeta & { type: 'message.started'; message_id: string; role: 'assistant' | 'user' })
+  | (StreamEventMeta & { type: 'text.delta'; message_id: string; delta: string })
+  | (StreamEventMeta & { type: 'reasoning.delta'; message_id: string; delta: string })
+  | (StreamEventMeta & { type: 'tool.started'; tool_call_id: string; tool: string; args: unknown; iteration: number })
+  | (StreamEventMeta & { type: 'tool.output.delta'; tool_call_id: string; delta: string })
+  | (StreamEventMeta & { type: 'tool.completed'; tool_call_id: string; result_len: number; status: 'ok' | 'error'; duration_ms: number })
+  | (StreamEventMeta & { type: 'permission.requested'; permission_id: string; tool_call_id: string; tool: string; risk?: string })
+  | (StreamEventMeta & { type: 'permission.resolved'; permission_id: string; decision: 'once' | 'always' | 'deny' })
+  | (StreamEventMeta & { type: 'status'; message: string })
+  | (StreamEventMeta & { type: 'usage'; tokens_in: number; tokens_out: number; cost_usd: number })
+  | (StreamEventMeta & { type: 'finish'; session_id: string; duration_ms: number; error?: string })
+
+export type StreamEventType = StreamEvent['type']
+
+export type SequencedStreamEvent = StreamEvent & Required<Pick<StreamEventMeta, 'seq' | 'ts'>>
+
+export interface StreamEventContext extends StreamEventMeta {
+  defaultMessageId?: string
+}
 
 const canonicalTypes = new Set<StreamEvent['type']>([
   'session.created',
@@ -35,8 +52,19 @@ function asNumber(value: unknown, fallback = 0): number {
   return typeof value === 'number' && Number.isFinite(value) ? value : fallback
 }
 
-function legacyToolCallId(raw: Record<string, unknown>): string {
-  return asString(raw.tool_call_id, `${asString(raw.tool, 'tool')}:${asNumber(raw.iteration, 0)}`)
+function metaFromRaw(raw: Record<string, unknown>, context?: StreamEventContext): StreamEventMeta {
+  return {
+    ...(typeof raw.run_id === 'string' && raw.run_id !== '' ? { run_id: raw.run_id } : context?.run_id ? { run_id: context.run_id } : {}),
+    ...(typeof raw.session_id === 'string' && raw.session_id !== '' ? { session_id: raw.session_id } : context?.session_id ? { session_id: context.session_id } : {}),
+    ...(typeof raw.message_id === 'string' && raw.message_id !== '' ? { message_id: raw.message_id } : context?.message_id ? { message_id: context.message_id } : {}),
+    ...(typeof raw.tool_call_id === 'string' && raw.tool_call_id !== '' ? { tool_call_id: raw.tool_call_id } : context?.tool_call_id ? { tool_call_id: context.tool_call_id } : {}),
+    ...(typeof raw.seq === 'number' && Number.isFinite(raw.seq) ? { seq: raw.seq } : context?.seq !== undefined ? { seq: context.seq } : {}),
+    ...(typeof raw.ts === 'string' && raw.ts !== '' ? { ts: raw.ts } : context?.ts ? { ts: context.ts } : {}),
+  }
+}
+
+function legacyToolCallId(raw: Record<string, unknown>, context?: StreamEventContext): string {
+  return asString(raw.tool_call_id, context?.tool_call_id ?? `${asString(raw.tool, 'tool')}:${asNumber(raw.iteration, 0)}`)
 }
 
 function parseArgs(args: unknown): unknown {
@@ -50,60 +78,81 @@ function parseArgs(args: unknown): unknown {
   }
 }
 
-export function adaptLegacyEvents(raw: Record<string, unknown>): StreamEvent[] {
+export function withStreamEventMeta(event: StreamEvent, meta: StreamEventMeta): StreamEvent {
+  return {
+    ...event,
+    ...(meta.run_id !== undefined && event.run_id === undefined ? { run_id: meta.run_id } : {}),
+    ...(meta.session_id !== undefined && event.session_id === undefined ? { session_id: meta.session_id } : {}),
+    ...(meta.message_id !== undefined && event.message_id === undefined ? { message_id: meta.message_id } : {}),
+    ...(meta.tool_call_id !== undefined && event.tool_call_id === undefined ? { tool_call_id: meta.tool_call_id } : {}),
+    ...(meta.seq !== undefined && event.seq === undefined ? { seq: meta.seq } : {}),
+    ...(meta.ts !== undefined && event.ts === undefined ? { ts: meta.ts } : {}),
+  } as StreamEvent
+}
+
+export function sequenceStreamEvent(event: StreamEvent, seq: number, ts = new Date().toISOString()): SequencedStreamEvent {
+  return withStreamEventMeta(event, { seq: event.seq ?? seq, ts: event.ts ?? ts }) as SequencedStreamEvent
+}
+
+export function adaptLegacyEvents(raw: Record<string, unknown>, context?: StreamEventContext): StreamEvent[] {
+  const meta = metaFromRaw(raw, context)
+  const messageId = asString(raw.message_id, context?.defaultMessageId ?? context?.message_id ?? 'main')
   switch (raw.type) {
     case 'token':
-      return [{ type: 'text.delta', message_id: asString(raw.message_id, 'main'), delta: asString(raw.delta) }]
+      return [withStreamEventMeta({ ...meta, type: 'text.delta', message_id: messageId, delta: asString(raw.delta) }, meta)]
     case 'tool_call':
       return [{
+        ...meta,
         type: 'tool.started',
-        tool_call_id: legacyToolCallId(raw),
+        tool_call_id: legacyToolCallId(raw, context),
         tool: asString(raw.tool),
         args: parseArgs(raw.args),
         iteration: asNumber(raw.iteration, 0),
       }]
     case 'tool_result':
       return [{
+        ...meta,
         type: 'tool.completed',
-        tool_call_id: legacyToolCallId(raw),
+        tool_call_id: legacyToolCallId(raw, context),
         result_len: asNumber(raw.result_len, 0),
         status: 'ok',
         duration_ms: asNumber(raw.duration_ms, 0),
       }]
     case 'status':
-      return [{ type: 'status', message: asString(raw.message) }]
+      return [{ ...meta, type: 'status', message: asString(raw.message) }]
     case 'finish': {
       const usage: StreamEvent = {
+        ...meta,
         type: 'usage',
         tokens_in: asNumber(raw.tokens_in, 0),
         tokens_out: asNumber(raw.tokens_out, 0),
         cost_usd: asNumber(raw.cost_usd, 0),
       }
       const finish: StreamEvent = {
+        ...meta,
         type: 'finish',
-        session_id: asString(raw.session_id),
+        session_id: asString(raw.session_id, context?.session_id),
         duration_ms: asNumber(raw.duration_ms, 0),
-        ...(typeof raw.run_id === 'string' && raw.run_id !== '' ? { run_id: raw.run_id } : {}),
         ...(typeof raw.error === 'string' && raw.error !== '' ? { error: raw.error } : {}),
       }
       return [usage, finish]
     }
     case 'error':
       return [{
+        ...meta,
         type: 'finish',
-        session_id: asString(raw.session_id),
+        session_id: asString(raw.session_id, context?.session_id),
         duration_ms: asNumber(raw.duration_ms, 0),
-        ...(typeof raw.run_id === 'string' && raw.run_id !== '' ? { run_id: raw.run_id } : {}),
         error: asString(raw.error, 'stream error'),
       }]
     default:
       if (canonicalTypes.has(raw.type as StreamEvent['type'])) {
-        return [raw as StreamEvent]
+        return [withStreamEventMeta(raw as unknown as StreamEvent, meta)]
       }
       return []
   }
 }
 
-export function adaptLegacyEvent(raw: Record<string, unknown>): StreamEvent | null {
-  return adaptLegacyEvents(raw)[0] ?? null
+export function adaptLegacyEvent(raw: Record<string, unknown>, context?: StreamEventContext): StreamEvent | null {
+  return adaptLegacyEvents(raw, context)[0] ?? null
 }

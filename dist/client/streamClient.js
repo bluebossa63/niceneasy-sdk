@@ -1,4 +1,4 @@
-import { adaptLegacyEvents } from '../types/stream.js';
+import { adaptLegacyEvents, sequenceStreamEvent } from '../types/stream.js';
 const MAX_RETRIES = 3;
 const INITIAL_BACKOFF_MS = 250;
 function sleep(ms) {
@@ -21,10 +21,20 @@ function parseSseBlock(block) {
     const parsed = JSON.parse(data);
     return parsed && typeof parsed === 'object' ? parsed : null;
 }
-function emitAdapted(raw, options) {
+function emitAdapted(raw, options, context) {
     let done = false;
-    for (const event of adaptLegacyEvents(raw)) {
-        options.onEvent(event);
+    for (const event of adaptLegacyEvents(raw, context)) {
+        const sequenced = sequenceStreamEvent(event, context.seq ?? 0);
+        context.seq = sequenced.seq + 1;
+        if (sequenced.run_id)
+            context.run_id = sequenced.run_id;
+        if (sequenced.session_id)
+            context.session_id = sequenced.session_id;
+        if (sequenced.message_id)
+            context.message_id = sequenced.message_id;
+        if (sequenced.tool_call_id)
+            context.tool_call_id = sequenced.tool_call_id;
+        options.onEvent(sequenced);
         if (event.type === 'finish') {
             done = true;
         }
@@ -39,6 +49,7 @@ async function readStream(response, options) {
     const decoder = new TextDecoder();
     let buffer = '';
     let done = false;
+    const context = { seq: 0, defaultMessageId: 'main' };
     for (;;) {
         const result = await reader.read();
         if (result.done) {
@@ -55,7 +66,7 @@ async function readStream(response, options) {
             buffer = buffer.slice(separatorIndex + separatorLength);
             const raw = parseSseBlock(block);
             if (raw) {
-                done = emitAdapted(raw, options) || done;
+                done = emitAdapted(raw, options, context) || done;
             }
         }
     }
@@ -63,7 +74,7 @@ async function readStream(response, options) {
     if (tail !== '') {
         const raw = parseSseBlock(tail);
         if (raw) {
-            done = emitAdapted(raw, options) || done;
+            done = emitAdapted(raw, options, context) || done;
         }
     }
     return done;
