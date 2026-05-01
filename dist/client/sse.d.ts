@@ -9,6 +9,11 @@ export interface SseParseResult {
     rest: string;
 }
 export type SseJsonParser<T> = (value: unknown, message: SseMessage) => T | null;
+export declare class SseJsonParseError extends Error {
+    readonly data: string;
+    readonly cause: unknown;
+    constructor(data: string, cause: unknown);
+}
 export declare function parseSseMessage(block: string): SseMessage | null;
 export declare function parseSseMessages(input: string): SseParseResult;
 export declare function parseSseJson<T = Record<string, unknown>>(input: string, parser?: SseJsonParser<T>): {

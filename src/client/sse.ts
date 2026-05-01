@@ -12,6 +12,17 @@ export interface SseParseResult {
 
 export type SseJsonParser<T> = (value: unknown, message: SseMessage) => T | null
 
+export class SseJsonParseError extends Error {
+  constructor(
+    public readonly data: string,
+    public readonly cause: unknown,
+  ) {
+    const preview = data.length > 240 ? `${data.slice(0, 240)}...` : data
+    super(`Failed to parse SSE JSON data: ${preview}`)
+    this.name = 'SseJsonParseError'
+  }
+}
+
 function findSseSeparator(input: string): { index: number; length: number } | null {
   const lf = input.indexOf('\n\n')
   const crlf = input.indexOf('\r\n\r\n')
@@ -113,10 +124,18 @@ export function parseSseJson<T = Record<string, unknown>>(
     if (data === '' || data === '[DONE]') {
       continue
     }
-    events.push(parser(JSON.parse(data) as unknown, message) as T)
+    events.push(parser(parseJsonData(data), message) as T)
   }
 
   return { events: events.filter((event): event is T => event !== null), rest }
+}
+
+function parseJsonData(data: string): unknown {
+  try {
+    return JSON.parse(data) as unknown
+  } catch (err) {
+    throw new SseJsonParseError(data, err)
+  }
 }
 
 export function createSseParser<T = Record<string, unknown>>(
@@ -147,7 +166,7 @@ export function createSseParser<T = Record<string, unknown>>(
         return []
       }
 
-      const value = JSON.parse(message.data) as unknown
+      const value = parseJsonData(message.data)
       const event = parser ? parser(value, message) : (value && typeof value === 'object' ? value as T : null)
       return event ? [event] : []
     },

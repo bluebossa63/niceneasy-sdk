@@ -31,6 +31,13 @@ export const canonicalStreamEvents: SequencedStreamEvent[] = [
     delta: 'Checking repository state.',
   }, 2, '2026-05-01T10:00:00.020Z'),
   sequenceStreamEvent({
+    type: 'reasoning.delta',
+    run_id: streamFixtureBase.run_id,
+    session_id: streamFixtureBase.session_id,
+    message_id: streamFixtureBase.message_id,
+    delta: 'Need to inspect git status before editing.',
+  }, 3, '2026-05-01T10:00:00.025Z'),
+  sequenceStreamEvent({
     type: 'tool.started',
     run_id: streamFixtureBase.run_id,
     session_id: streamFixtureBase.session_id,
@@ -38,14 +45,14 @@ export const canonicalStreamEvents: SequencedStreamEvent[] = [
     tool: 'shell_exec',
     args: { cmd: 'git status --short' },
     iteration: 1,
-  }, 3, '2026-05-01T10:00:00.030Z'),
+  }, 4, '2026-05-01T10:00:00.030Z'),
   sequenceStreamEvent({
     type: 'tool.output.delta',
     run_id: streamFixtureBase.run_id,
     session_id: streamFixtureBase.session_id,
     tool_call_id: streamFixtureBase.tool_call_id,
     delta: ' M src/index.ts\n',
-  }, 4, '2026-05-01T10:00:00.040Z'),
+  }, 5, '2026-05-01T10:00:00.040Z'),
   sequenceStreamEvent({
     type: 'tool.completed',
     run_id: streamFixtureBase.run_id,
@@ -54,7 +61,7 @@ export const canonicalStreamEvents: SequencedStreamEvent[] = [
     result_len: 15,
     status: 'ok',
     duration_ms: 42,
-  }, 5, '2026-05-01T10:00:00.050Z'),
+  }, 6, '2026-05-01T10:00:00.050Z'),
   sequenceStreamEvent({
     type: 'permission.requested',
     run_id: streamFixtureBase.run_id,
@@ -63,14 +70,14 @@ export const canonicalStreamEvents: SequencedStreamEvent[] = [
     tool_call_id: streamFixtureBase.tool_call_id,
     tool: 'shell_exec',
     risk: 'writes to repository',
-  }, 6, '2026-05-01T10:00:00.060Z'),
+  }, 7, '2026-05-01T10:00:00.060Z'),
   sequenceStreamEvent({
     type: 'permission.resolved',
     run_id: streamFixtureBase.run_id,
     session_id: streamFixtureBase.session_id,
     permission_id: 'permission-fixture-001',
     decision: 'once',
-  }, 7, '2026-05-01T10:00:00.070Z'),
+  }, 8, '2026-05-01T10:00:00.070Z'),
   sequenceStreamEvent({
     type: 'usage',
     run_id: streamFixtureBase.run_id,
@@ -78,13 +85,13 @@ export const canonicalStreamEvents: SequencedStreamEvent[] = [
     tokens_in: 1200,
     tokens_out: 320,
     cost_usd: 0.0123,
-  }, 8, '2026-05-01T10:00:00.080Z'),
+  }, 9, '2026-05-01T10:00:00.080Z'),
   sequenceStreamEvent({
     type: 'finish',
     run_id: streamFixtureBase.run_id,
     session_id: streamFixtureBase.session_id,
     duration_ms: 1200,
-  }, 9, '2026-05-01T10:00:01.200Z'),
+  }, 10, '2026-05-01T10:00:01.200Z'),
 ]
 
 export const legacyStreamPayloads: Array<Record<string, unknown>> = [

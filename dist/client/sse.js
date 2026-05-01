@@ -1,3 +1,14 @@
+export class SseJsonParseError extends Error {
+    data;
+    cause;
+    constructor(data, cause) {
+        const preview = data.length > 240 ? `${data.slice(0, 240)}...` : data;
+        super(`Failed to parse SSE JSON data: ${preview}`);
+        this.data = data;
+        this.cause = cause;
+        this.name = 'SseJsonParseError';
+    }
+}
 function findSseSeparator(input) {
     const lf = input.indexOf('\n\n');
     const crlf = input.indexOf('\r\n\r\n');
@@ -82,9 +93,17 @@ export function parseSseJson(input, parser = (value) => (value && typeof value =
         if (data === '' || data === '[DONE]') {
             continue;
         }
-        events.push(parser(JSON.parse(data), message));
+        events.push(parser(parseJsonData(data), message));
     }
     return { events: events.filter((event) => event !== null), rest };
+}
+function parseJsonData(data) {
+    try {
+        return JSON.parse(data);
+    }
+    catch (err) {
+        throw new SseJsonParseError(data, err);
+    }
 }
 export function createSseParser(parser) {
     let buffer = '';
@@ -105,7 +124,7 @@ export function createSseParser(parser) {
             if (!message || message.data.trim() === '' || message.data.trim() === '[DONE]') {
                 return [];
             }
-            const value = JSON.parse(message.data);
+            const value = parseJsonData(message.data);
             const event = parser ? parser(value, message) : (value && typeof value === 'object' ? value : null);
             return event ? [event] : [];
         },
