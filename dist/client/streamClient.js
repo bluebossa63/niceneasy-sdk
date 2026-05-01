@@ -1,25 +1,9 @@
 import { adaptLegacyEvents, sequenceStreamEvent } from '../types/stream.js';
+import { createSseParser } from './sse.js';
 const MAX_RETRIES = 3;
 const INITIAL_BACKOFF_MS = 250;
 function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
-}
-function parseSseBlock(block) {
-    const dataLines = [];
-    for (const line of block.split(/\r?\n/)) {
-        if (line.startsWith('data:')) {
-            dataLines.push(line.slice(5).trimStart());
-        }
-    }
-    if (dataLines.length === 0) {
-        return null;
-    }
-    const data = dataLines.join('\n').trim();
-    if (data === '' || data === '[DONE]') {
-        return null;
-    }
-    const parsed = JSON.parse(data);
-    return parsed && typeof parsed === 'object' ? parsed : null;
 }
 function emitAdapted(raw, options, context) {
     let done = false;
@@ -47,35 +31,20 @@ async function readStream(response, options) {
     }
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
-    let buffer = '';
     let done = false;
     const context = { seq: 0, defaultMessageId: 'main' };
+    const parser = createSseParser();
     for (;;) {
         const result = await reader.read();
         if (result.done) {
             break;
         }
-        buffer += decoder.decode(result.value, { stream: true });
-        for (;;) {
-            const separatorIndex = buffer.search(/\r?\n\r?\n/);
-            if (separatorIndex < 0) {
-                break;
-            }
-            const block = buffer.slice(0, separatorIndex);
-            const separatorLength = buffer.startsWith('\r\n\r\n', separatorIndex) ? 4 : 2;
-            buffer = buffer.slice(separatorIndex + separatorLength);
-            const raw = parseSseBlock(block);
-            if (raw) {
-                done = emitAdapted(raw, options, context) || done;
-            }
-        }
-    }
-    const tail = buffer.trim();
-    if (tail !== '') {
-        const raw = parseSseBlock(tail);
-        if (raw) {
+        for (const raw of parser.push(decoder.decode(result.value, { stream: true }))) {
             done = emitAdapted(raw, options, context) || done;
         }
+    }
+    for (const raw of parser.flush()) {
+        done = emitAdapted(raw, options, context) || done;
     }
     return done;
 }

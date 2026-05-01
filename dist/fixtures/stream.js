@@ -1,0 +1,102 @@
+import { sequenceStreamEvent } from '../types/stream.js';
+export const streamFixtureBase = {
+    run_id: 'run-fixture-001',
+    session_id: 'session-fixture-001',
+    message_id: 'message-fixture-001',
+    tool_call_id: 'tool-fixture-001',
+};
+export const canonicalStreamEvents = [
+    sequenceStreamEvent({
+        type: 'session.created',
+        run_id: streamFixtureBase.run_id,
+        session_id: streamFixtureBase.session_id,
+        agent: 'codex',
+        model: 'gpt-oss-120b',
+    }, 0, '2026-05-01T10:00:00.000Z'),
+    sequenceStreamEvent({
+        type: 'message.started',
+        run_id: streamFixtureBase.run_id,
+        session_id: streamFixtureBase.session_id,
+        message_id: streamFixtureBase.message_id,
+        role: 'assistant',
+    }, 1, '2026-05-01T10:00:00.010Z'),
+    sequenceStreamEvent({
+        type: 'text.delta',
+        run_id: streamFixtureBase.run_id,
+        session_id: streamFixtureBase.session_id,
+        message_id: streamFixtureBase.message_id,
+        delta: 'Checking repository state.',
+    }, 2, '2026-05-01T10:00:00.020Z'),
+    sequenceStreamEvent({
+        type: 'tool.started',
+        run_id: streamFixtureBase.run_id,
+        session_id: streamFixtureBase.session_id,
+        tool_call_id: streamFixtureBase.tool_call_id,
+        tool: 'shell_exec',
+        args: { cmd: 'git status --short' },
+        iteration: 1,
+    }, 3, '2026-05-01T10:00:00.030Z'),
+    sequenceStreamEvent({
+        type: 'tool.output.delta',
+        run_id: streamFixtureBase.run_id,
+        session_id: streamFixtureBase.session_id,
+        tool_call_id: streamFixtureBase.tool_call_id,
+        delta: ' M src/index.ts\n',
+    }, 4, '2026-05-01T10:00:00.040Z'),
+    sequenceStreamEvent({
+        type: 'tool.completed',
+        run_id: streamFixtureBase.run_id,
+        session_id: streamFixtureBase.session_id,
+        tool_call_id: streamFixtureBase.tool_call_id,
+        result_len: 15,
+        status: 'ok',
+        duration_ms: 42,
+    }, 5, '2026-05-01T10:00:00.050Z'),
+    sequenceStreamEvent({
+        type: 'permission.requested',
+        run_id: streamFixtureBase.run_id,
+        session_id: streamFixtureBase.session_id,
+        permission_id: 'permission-fixture-001',
+        tool_call_id: streamFixtureBase.tool_call_id,
+        tool: 'shell_exec',
+        risk: 'writes to repository',
+    }, 6, '2026-05-01T10:00:00.060Z'),
+    sequenceStreamEvent({
+        type: 'permission.resolved',
+        run_id: streamFixtureBase.run_id,
+        session_id: streamFixtureBase.session_id,
+        permission_id: 'permission-fixture-001',
+        decision: 'once',
+    }, 7, '2026-05-01T10:00:00.070Z'),
+    sequenceStreamEvent({
+        type: 'usage',
+        run_id: streamFixtureBase.run_id,
+        session_id: streamFixtureBase.session_id,
+        tokens_in: 1200,
+        tokens_out: 320,
+        cost_usd: 0.0123,
+    }, 8, '2026-05-01T10:00:00.080Z'),
+    sequenceStreamEvent({
+        type: 'finish',
+        run_id: streamFixtureBase.run_id,
+        session_id: streamFixtureBase.session_id,
+        duration_ms: 1200,
+    }, 9, '2026-05-01T10:00:01.200Z'),
+];
+export const legacyStreamPayloads = [
+    { type: 'token', delta: 'Checking repository state.', run_id: streamFixtureBase.run_id, session_id: streamFixtureBase.session_id },
+    { type: 'tool_call', tool_call_id: streamFixtureBase.tool_call_id, tool: 'shell_exec', args: '{"cmd":"git status --short"}', iteration: 1 },
+    { type: 'tool_result', tool_call_id: streamFixtureBase.tool_call_id, result_len: 15, duration_ms: 42 },
+    { type: 'status', message: 'retrying nudge 1/1' },
+    { type: 'finish', session_id: streamFixtureBase.session_id, run_id: streamFixtureBase.run_id, tokens_in: 1200, tokens_out: 320, cost_usd: 0.0123, duration_ms: 1200 },
+];
+export const sseFixtureStream = legacyStreamPayloads
+    .map((payload) => `event: ${String(payload.type)}\ndata: ${JSON.stringify(payload)}\n\n`)
+    .join('');
+export const errorStreamEvent = {
+    type: 'finish',
+    run_id: streamFixtureBase.run_id,
+    session_id: streamFixtureBase.session_id,
+    duration_ms: 300,
+    error: 'tool execution failed',
+};
