@@ -49,7 +49,7 @@ export function buildRunTimeline(events) {
                 const existing = tools.get(event.tool_call_id);
                 tools.set(event.tool_call_id, {
                     id: event.tool_call_id,
-                    tool: existing?.tool ?? event.tool_call_id,
+                    tool: existing?.tool ?? 'unknown',
                     args: existing?.args,
                     iteration: existing?.iteration ?? 0,
                     startedAt: existing?.startedAt,
@@ -65,7 +65,7 @@ export function buildRunTimeline(events) {
                 const existing = tools.get(event.tool_call_id);
                 tools.set(event.tool_call_id, {
                     id: event.tool_call_id,
-                    tool: existing?.tool ?? event.tool_call_id,
+                    tool: existing?.tool ?? 'unknown',
                     args: existing?.args,
                     iteration: existing?.iteration ?? 0,
                     startedAt: existing?.startedAt,
@@ -90,8 +90,8 @@ export function buildRunTimeline(events) {
                 const existing = permissions.get(event.permission_id);
                 permissions.set(event.permission_id, {
                     id: event.permission_id,
-                    toolCallId: existing?.toolCallId ?? '',
-                    tool: existing?.tool ?? '',
+                    toolCallId: existing?.toolCallId ?? 'unknown',
+                    tool: existing?.tool ?? 'unknown',
                     risk: existing?.risk,
                     requestedAt: existing?.requestedAt,
                     resolvedAt: event.ts,
