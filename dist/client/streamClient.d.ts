@@ -1,6 +1,8 @@
 import { type SequencedStreamEvent } from '../types/stream.js';
 export interface StreamClientOptions {
     baseUrl?: string;
+    headers?: Record<string, string>;
+    signal?: AbortSignal;
     onEvent: (event: SequencedStreamEvent) => void;
     onError?: (err: Error) => void;
     onDone?: () => void;

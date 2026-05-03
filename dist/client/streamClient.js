@@ -33,7 +33,16 @@ async function readStream(response, options) {
     const decoder = new TextDecoder();
     let done = false;
     const context = { seq: 0, defaultMessageId: 'main' };
-    const parser = createSseParser();
+    const parser = createSseParser((value, message) => {
+        if (!value || typeof value !== 'object' || Array.isArray(value)) {
+            return null;
+        }
+        const raw = { ...value };
+        if (raw.type === undefined && message.event) {
+            raw.type = message.event;
+        }
+        return raw;
+    });
     for (;;) {
         const result = await reader.read();
         if (result.done) {
@@ -63,8 +72,9 @@ export async function streamChat(request, options) {
         try {
             const response = await fetch(streamUrl(options.baseUrl), {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', ...options.headers },
                 body: JSON.stringify(request),
+                signal: options.signal,
             });
             if (!response.ok) {
                 const detail = await response.text();

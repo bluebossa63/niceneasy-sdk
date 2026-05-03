@@ -3,6 +3,8 @@ import { createSseParser } from './sse.js'
 
 export interface StreamClientOptions {
   baseUrl?: string
+  headers?: Record<string, string>
+  signal?: AbortSignal
   onEvent: (event: SequencedStreamEvent) => void
   onError?: (err: Error) => void
   onDone?: () => void
@@ -52,7 +54,16 @@ async function readStream(response: Response, options: StreamClientOptions): Pro
   const decoder = new TextDecoder()
   let done = false
   const context: StreamEventContext = { seq: 0, defaultMessageId: 'main' }
-  const parser = createSseParser<Record<string, unknown>>()
+  const parser = createSseParser<Record<string, unknown>>((value, message) => {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return null
+    }
+    const raw = { ...(value as Record<string, unknown>) }
+    if (raw.type === undefined && message.event) {
+      raw.type = message.event
+    }
+    return raw
+  })
 
   for (;;) {
     const result = await reader.read()
@@ -91,8 +102,9 @@ export async function streamChat(
     try {
       const response = await fetch(streamUrl(options.baseUrl), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...options.headers },
         body: JSON.stringify(request),
+        signal: options.signal,
       })
 
       if (!response.ok) {
