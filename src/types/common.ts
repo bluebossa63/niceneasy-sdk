@@ -119,6 +119,7 @@ export interface ChatRequest {
   timeout?: number
   profile?: 'full' | 'compact'
   session_id?: string
+  model_ref?: string
 }
 
 export interface ChatResponse {

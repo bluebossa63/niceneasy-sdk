@@ -12,5 +12,6 @@ export interface StreamChatRequest {
     prompt: string;
     session_id?: string;
     timeout?: number;
+    model_ref?: string;
 }
 export declare function streamChat(request: StreamChatRequest, options: StreamClientOptions): Promise<void>;

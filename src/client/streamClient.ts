@@ -15,6 +15,7 @@ export interface StreamChatRequest {
   prompt: string
   session_id?: string
   timeout?: number
+  model_ref?: string
 }
 
 const MAX_RETRIES = 3
