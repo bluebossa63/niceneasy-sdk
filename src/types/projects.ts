@@ -116,6 +116,7 @@ export interface ProjectDraftInput {
   fleetName: string
   approvalModel: string
   kickoffTaskKey?: string
+  model_ref?: string
 }
 
 export interface WorkItemStatusInput {
