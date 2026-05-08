@@ -100,7 +100,19 @@ export function buildRunTimeline(events) {
                 break;
             }
             case 'status':
-                statuses.push({ seq: event.seq, ts: event.ts, message: event.message });
+                statuses.push({
+                    seq: event.seq,
+                    ts: event.ts,
+                    message: event.message,
+                    uxEventKind: event.ux_event_kind,
+                    tool: event.tool,
+                    args: event.args,
+                    durationMs: event.duration_ms,
+                    iteration: event.iteration,
+                    diff: event.diff,
+                    retry: event.retry,
+                    maxRetries: event.max_retries,
+                });
                 break;
             case 'usage':
                 usage = event;

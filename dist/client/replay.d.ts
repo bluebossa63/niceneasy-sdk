@@ -25,6 +25,14 @@ export interface TimelineStatus {
     seq: number;
     ts: string;
     message: string;
+    uxEventKind?: string;
+    tool?: string;
+    args?: unknown;
+    durationMs?: number;
+    iteration?: number;
+    diff?: string;
+    retry?: number;
+    maxRetries?: number;
 }
 export interface RunTimelineModel {
     events: SequencedStreamEvent[];

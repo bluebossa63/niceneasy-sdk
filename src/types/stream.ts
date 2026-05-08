@@ -17,7 +17,7 @@ export type StreamEvent =
   | (StreamEventMeta & { type: 'tool.completed'; tool_call_id: string; result_len: number; status: 'ok' | 'error'; duration_ms: number })
   | (StreamEventMeta & { type: 'permission.requested'; permission_id: string; tool_call_id: string; tool: string; risk?: string })
   | (StreamEventMeta & { type: 'permission.resolved'; permission_id: string; decision: 'once' | 'always' | 'deny' })
-  | (StreamEventMeta & { type: 'status'; message: string })
+  | (StreamEventMeta & UXStatusFields & { type: 'status'; message: string })
   | (StreamEventMeta & { type: 'usage'; tokens_in: number; tokens_out: number; cost_usd: number })
   | (StreamEventMeta & { type: 'finish'; session_id: string; duration_ms: number; error?: string })
 
@@ -27,6 +27,19 @@ export type SequencedStreamEvent = StreamEvent & Required<Pick<StreamEventMeta, 
 
 export interface StreamEventContext extends StreamEventMeta {
   defaultMessageId?: string
+}
+
+export type UXEventKind = 'tool.completed' | 'tool.inline_diff' | 'warning'
+
+export interface UXStatusFields {
+  ux_event_kind?: UXEventKind | string
+  tool?: string
+  args?: unknown
+  duration_ms?: number
+  iteration?: number
+  diff?: string
+  retry?: number
+  max_retries?: number
 }
 
 const canonicalTypes = new Set<StreamEvent['type']>([
@@ -119,7 +132,19 @@ export function adaptLegacyEvents(raw: Record<string, unknown>, context?: Stream
         duration_ms: asNumber(raw.duration_ms, 0),
       }]
     case 'status':
-      return [{ ...meta, type: 'status', message: asString(raw.message) }]
+      return [{
+        ...meta,
+        type: 'status',
+        message: asString(raw.message),
+        ...(typeof raw.ux_event_kind === 'string' && raw.ux_event_kind !== '' ? { ux_event_kind: raw.ux_event_kind } : {}),
+        ...(typeof raw.tool === 'string' && raw.tool !== '' ? { tool: raw.tool } : {}),
+        ...(raw.args !== undefined ? { args: parseArgs(raw.args) } : {}),
+        ...(typeof raw.duration_ms === 'number' && Number.isFinite(raw.duration_ms) ? { duration_ms: raw.duration_ms } : {}),
+        ...(typeof raw.iteration === 'number' && Number.isFinite(raw.iteration) ? { iteration: raw.iteration } : {}),
+        ...(typeof raw.diff === 'string' && raw.diff !== '' ? { diff: raw.diff } : {}),
+        ...(typeof raw.retry === 'number' && Number.isFinite(raw.retry) ? { retry: raw.retry } : {}),
+        ...(typeof raw.max_retries === 'number' && Number.isFinite(raw.max_retries) ? { max_retries: raw.max_retries } : {}),
+      }]
     case 'finish': {
       const usage: StreamEvent = {
         ...meta,

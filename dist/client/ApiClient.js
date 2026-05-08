@@ -263,7 +263,8 @@ export class ApiClient {
     async fetchRunEvents(runId, options) {
         const response = await this.request(`/api/runs/${encodeURIComponent(runId)}/events`, options);
         return response.events.map((event) => {
-            const payload = adaptLegacyEvent(JSON.parse(event.payload), {
+            const rawPayload = event.event ?? JSON.parse(event.payload);
+            const payload = adaptLegacyEvent(rawPayload, {
                 seq: event.seq,
                 ts: event.ts,
             });

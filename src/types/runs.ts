@@ -11,6 +11,8 @@ export interface RawRunEvent {
   seq: number
   event_type: string
   payload: string
+  event?: StreamEvent
+  ux_event_kind?: string
   ts: string
 }
 

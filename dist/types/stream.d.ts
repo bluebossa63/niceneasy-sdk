@@ -49,7 +49,7 @@ export type StreamEvent = (StreamEventMeta & {
     type: 'permission.resolved';
     permission_id: string;
     decision: 'once' | 'always' | 'deny';
-}) | (StreamEventMeta & {
+}) | (StreamEventMeta & UXStatusFields & {
     type: 'status';
     message: string;
 }) | (StreamEventMeta & {
@@ -67,6 +67,17 @@ export type StreamEventType = StreamEvent['type'];
 export type SequencedStreamEvent = StreamEvent & Required<Pick<StreamEventMeta, 'seq' | 'ts'>>;
 export interface StreamEventContext extends StreamEventMeta {
     defaultMessageId?: string;
+}
+export type UXEventKind = 'tool.completed' | 'tool.inline_diff' | 'warning';
+export interface UXStatusFields {
+    ux_event_kind?: UXEventKind | string;
+    tool?: string;
+    args?: unknown;
+    duration_ms?: number;
+    iteration?: number;
+    diff?: string;
+    retry?: number;
+    max_retries?: number;
 }
 export declare function withStreamEventMeta(event: StreamEvent, meta: StreamEventMeta): StreamEvent;
 export declare function sequenceStreamEvent(event: StreamEvent, seq: number, ts?: string): SequencedStreamEvent;

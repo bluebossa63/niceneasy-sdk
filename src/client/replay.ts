@@ -29,6 +29,14 @@ export interface TimelineStatus {
   seq: number
   ts: string
   message: string
+  uxEventKind?: string
+  tool?: string
+  args?: unknown
+  durationMs?: number
+  iteration?: number
+  diff?: string
+  retry?: number
+  maxRetries?: number
 }
 
 export interface RunTimelineModel {
@@ -152,7 +160,19 @@ export function buildRunTimeline(events: readonly SequencedStreamEvent[]): RunTi
         break
       }
       case 'status':
-        statuses.push({ seq: event.seq, ts: event.ts, message: event.message })
+        statuses.push({
+          seq: event.seq,
+          ts: event.ts,
+          message: event.message,
+          uxEventKind: event.ux_event_kind,
+          tool: event.tool,
+          args: event.args,
+          durationMs: event.duration_ms,
+          iteration: event.iteration,
+          diff: event.diff,
+          retry: event.retry,
+          maxRetries: event.max_retries,
+        })
         break
       case 'usage':
         usage = event

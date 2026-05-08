@@ -1,4 +1,4 @@
-import type { SequencedStreamEvent } from './stream.js';
+import type { SequencedStreamEvent, StreamEvent } from './stream.js';
 export interface RunEvent {
     seq: number;
     event_type: string;
@@ -9,6 +9,8 @@ export interface RawRunEvent {
     seq: number;
     event_type: string;
     payload: string;
+    event?: StreamEvent;
+    ux_event_kind?: string;
     ts: string;
 }
 export interface RunEventsResponse {

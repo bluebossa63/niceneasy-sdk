@@ -390,7 +390,8 @@ export class ApiClient {
       options,
     )
     return response.events.map((event) => {
-      const payload = adaptLegacyEvent(JSON.parse(event.payload) as Record<string, unknown>, {
+      const rawPayload = event.event ?? (JSON.parse(event.payload) as Record<string, unknown>)
+      const payload = adaptLegacyEvent(rawPayload as Record<string, unknown>, {
         seq: event.seq,
         ts: event.ts,
       })

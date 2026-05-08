@@ -63,6 +63,17 @@ export const canonicalStreamEvents: SequencedStreamEvent[] = [
     duration_ms: 42,
   }, 6, '2026-05-01T10:00:00.050Z'),
   sequenceStreamEvent({
+    type: 'status',
+    run_id: streamFixtureBase.run_id,
+    session_id: streamFixtureBase.session_id,
+    message: 'review diff',
+    ux_event_kind: 'tool.inline_diff',
+    tool: 'write_file',
+    args: '/home/daniele/dev/fsi-ai-agent/README.md',
+    iteration: 1,
+    diff: '--- a/README.md\n+++ b/README.md\n@@ -1 +1 @@\n-old\n+new\n',
+  }, 7, '2026-05-01T10:00:00.055Z'),
+  sequenceStreamEvent({
     type: 'permission.requested',
     run_id: streamFixtureBase.run_id,
     session_id: streamFixtureBase.session_id,
@@ -70,14 +81,14 @@ export const canonicalStreamEvents: SequencedStreamEvent[] = [
     tool_call_id: streamFixtureBase.tool_call_id,
     tool: 'shell_exec',
     risk: 'writes to repository',
-  }, 7, '2026-05-01T10:00:00.060Z'),
+  }, 8, '2026-05-01T10:00:00.060Z'),
   sequenceStreamEvent({
     type: 'permission.resolved',
     run_id: streamFixtureBase.run_id,
     session_id: streamFixtureBase.session_id,
     permission_id: 'permission-fixture-001',
     decision: 'once',
-  }, 8, '2026-05-01T10:00:00.070Z'),
+  }, 9, '2026-05-01T10:00:00.070Z'),
   sequenceStreamEvent({
     type: 'usage',
     run_id: streamFixtureBase.run_id,
@@ -85,19 +96,20 @@ export const canonicalStreamEvents: SequencedStreamEvent[] = [
     tokens_in: 1200,
     tokens_out: 320,
     cost_usd: 0.0123,
-  }, 9, '2026-05-01T10:00:00.080Z'),
+  }, 10, '2026-05-01T10:00:00.080Z'),
   sequenceStreamEvent({
     type: 'finish',
     run_id: streamFixtureBase.run_id,
     session_id: streamFixtureBase.session_id,
     duration_ms: 1200,
-  }, 10, '2026-05-01T10:00:01.200Z'),
+  }, 11, '2026-05-01T10:00:01.200Z'),
 ]
 
 export const legacyStreamPayloads: Array<Record<string, unknown>> = [
   { type: 'token', delta: 'Checking repository state.', run_id: streamFixtureBase.run_id, session_id: streamFixtureBase.session_id },
   { type: 'tool_call', tool_call_id: streamFixtureBase.tool_call_id, tool: 'shell_exec', args: '{"cmd":"git status --short"}', iteration: 1 },
   { type: 'tool_result', tool_call_id: streamFixtureBase.tool_call_id, result_len: 15, duration_ms: 42 },
+  { type: 'status', message: 'review diff', ux_event_kind: 'tool.inline_diff', tool: 'write_file', args: '/tmp/example.txt', iteration: 1, diff: '--- a/example.txt\n+++ b/example.txt\n@@ -1 +1 @@\n-old\n+new\n' },
   { type: 'status', message: 'retrying nudge 1/1' },
   { type: 'finish', session_id: streamFixtureBase.session_id, run_id: streamFixtureBase.run_id, tokens_in: 1200, tokens_out: 320, cost_usd: 0.0123, duration_ms: 1200 },
 ]

@@ -81,7 +81,19 @@ export function adaptLegacyEvents(raw, context) {
                     duration_ms: asNumber(raw.duration_ms, 0),
                 }];
         case 'status':
-            return [{ ...meta, type: 'status', message: asString(raw.message) }];
+            return [{
+                    ...meta,
+                    type: 'status',
+                    message: asString(raw.message),
+                    ...(typeof raw.ux_event_kind === 'string' && raw.ux_event_kind !== '' ? { ux_event_kind: raw.ux_event_kind } : {}),
+                    ...(typeof raw.tool === 'string' && raw.tool !== '' ? { tool: raw.tool } : {}),
+                    ...(raw.args !== undefined ? { args: parseArgs(raw.args) } : {}),
+                    ...(typeof raw.duration_ms === 'number' && Number.isFinite(raw.duration_ms) ? { duration_ms: raw.duration_ms } : {}),
+                    ...(typeof raw.iteration === 'number' && Number.isFinite(raw.iteration) ? { iteration: raw.iteration } : {}),
+                    ...(typeof raw.diff === 'string' && raw.diff !== '' ? { diff: raw.diff } : {}),
+                    ...(typeof raw.retry === 'number' && Number.isFinite(raw.retry) ? { retry: raw.retry } : {}),
+                    ...(typeof raw.max_retries === 'number' && Number.isFinite(raw.max_retries) ? { max_retries: raw.max_retries } : {}),
+                }];
         case 'finish': {
             const usage = {
                 ...meta,
