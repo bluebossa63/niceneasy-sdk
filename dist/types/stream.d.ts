@@ -37,6 +37,7 @@ export type StreamEvent = (StreamEventMeta & {
     type: 'tool.completed';
     tool_call_id: string;
     result_len: number;
+    result?: string;
     status: 'ok' | 'error';
     duration_ms: number;
 }) | (StreamEventMeta & {

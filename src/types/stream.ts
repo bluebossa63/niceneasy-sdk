@@ -14,7 +14,7 @@ export type StreamEvent =
   | (StreamEventMeta & { type: 'reasoning.delta'; message_id: string; delta: string })
   | (StreamEventMeta & { type: 'tool.started'; tool_call_id: string; tool: string; args: unknown; iteration: number })
   | (StreamEventMeta & { type: 'tool.output.delta'; tool_call_id: string; delta: string })
-  | (StreamEventMeta & { type: 'tool.completed'; tool_call_id: string; result_len: number; status: 'ok' | 'error'; duration_ms: number })
+  | (StreamEventMeta & { type: 'tool.completed'; tool_call_id: string; result_len: number; result?: string; status: 'ok' | 'error'; duration_ms: number })
   | (StreamEventMeta & { type: 'permission.requested'; permission_id: string; tool_call_id: string; tool: string; risk?: string })
   | (StreamEventMeta & { type: 'permission.resolved'; permission_id: string; decision: 'once' | 'always' | 'deny' })
   | (StreamEventMeta & UXStatusFields & { type: 'status'; message: string })
@@ -128,6 +128,7 @@ export function adaptLegacyEvents(raw: Record<string, unknown>, context?: Stream
         type: 'tool.completed',
         tool_call_id: legacyToolCallId(raw, context),
         result_len: asNumber(raw.result_len, 0),
+        ...(typeof raw.result === 'string' && raw.result !== '' ? { result: raw.result } : {}),
         status: 'ok',
         duration_ms: asNumber(raw.duration_ms, 0),
       }]

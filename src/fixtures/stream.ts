@@ -59,6 +59,7 @@ export const canonicalStreamEvents: SequencedStreamEvent[] = [
     session_id: streamFixtureBase.session_id,
     tool_call_id: streamFixtureBase.tool_call_id,
     result_len: 15,
+    result: ' M src/index.ts\n',
     status: 'ok',
     duration_ms: 42,
   }, 6, '2026-05-01T10:00:00.050Z'),
@@ -108,7 +109,7 @@ export const canonicalStreamEvents: SequencedStreamEvent[] = [
 export const legacyStreamPayloads: Array<Record<string, unknown>> = [
   { type: 'token', delta: 'Checking repository state.', run_id: streamFixtureBase.run_id, session_id: streamFixtureBase.session_id },
   { type: 'tool_call', tool_call_id: streamFixtureBase.tool_call_id, tool: 'shell_exec', args: '{"cmd":"git status --short"}', iteration: 1 },
-  { type: 'tool_result', tool_call_id: streamFixtureBase.tool_call_id, result_len: 15, duration_ms: 42 },
+  { type: 'tool_result', tool_call_id: streamFixtureBase.tool_call_id, result_len: 15, result: ' M src/index.ts\n', duration_ms: 42 },
   { type: 'status', message: 'review diff', ux_event_kind: 'tool.inline_diff', tool: 'write_file', args: '/tmp/example.txt', iteration: 1, diff: '--- a/example.txt\n+++ b/example.txt\n@@ -1 +1 @@\n-old\n+new\n' },
   { type: 'status', message: 'retrying nudge 1/1' },
   { type: 'finish', session_id: streamFixtureBase.session_id, run_id: streamFixtureBase.run_id, tokens_in: 1200, tokens_out: 320, cost_usd: 0.0123, duration_ms: 1200 },

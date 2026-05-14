@@ -77,6 +77,7 @@ export function adaptLegacyEvents(raw, context) {
                     type: 'tool.completed',
                     tool_call_id: legacyToolCallId(raw, context),
                     result_len: asNumber(raw.result_len, 0),
+                    ...(typeof raw.result === 'string' && raw.result !== '' ? { result: raw.result } : {}),
                     status: 'ok',
                     duration_ms: asNumber(raw.duration_ms, 0),
                 }];
