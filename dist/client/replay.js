@@ -55,8 +55,12 @@ export function buildRunTimeline(events) {
                     startedAt: existing?.startedAt,
                     completedAt: existing?.completedAt,
                     output: `${existing?.output ?? ''}${event.delta}`,
+                    resultPreview: event.result_preview ?? existing?.resultPreview,
                     resultLen: existing?.resultLen,
                     status: existing?.status,
+                    failureClass: event.failure_class ?? existing?.failureClass,
+                    retryable: event.retryable ?? existing?.retryable,
+                    isError: event.is_error ?? existing?.isError,
                     durationMs: existing?.durationMs,
                 });
                 break;
@@ -70,9 +74,13 @@ export function buildRunTimeline(events) {
                     iteration: existing?.iteration ?? 0,
                     startedAt: existing?.startedAt,
                     completedAt: event.ts,
-                    output: existing?.output ?? '',
+                    output: event.result ?? existing?.output ?? '',
+                    resultPreview: event.result_preview ?? existing?.resultPreview,
                     resultLen: event.result_len,
                     status: event.status,
+                    failureClass: event.failure_class,
+                    retryable: event.retryable,
+                    isError: event.is_error,
                     durationMs: event.duration_ms,
                 });
                 break;

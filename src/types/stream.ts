@@ -13,8 +13,8 @@ export type StreamEvent =
   | (StreamEventMeta & { type: 'text.delta'; message_id: string; delta: string })
   | (StreamEventMeta & { type: 'reasoning.delta'; message_id: string; delta: string })
   | (StreamEventMeta & { type: 'tool.started'; tool_call_id: string; tool: string; args: unknown; iteration: number })
-  | (StreamEventMeta & { type: 'tool.output.delta'; tool_call_id: string; delta: string })
-  | (StreamEventMeta & { type: 'tool.completed'; tool_call_id: string; result_len: number; result?: string; status: 'ok' | 'error'; duration_ms: number })
+  | (StreamEventMeta & ToolResultFields & { type: 'tool.output.delta'; tool_call_id: string; delta: string })
+  | (StreamEventMeta & ToolResultFields & { type: 'tool.completed'; tool_call_id: string; result_len: number; result?: string; status: 'ok' | 'error' | string; duration_ms: number })
   | (StreamEventMeta & { type: 'permission.requested'; permission_id: string; tool_call_id: string; tool: string; risk?: string })
   | (StreamEventMeta & { type: 'permission.resolved'; permission_id: string; decision: 'once' | 'always' | 'deny' })
   | (StreamEventMeta & UXStatusFields & { type: 'status'; message: string })
@@ -40,6 +40,13 @@ export interface UXStatusFields {
   diff?: string
   retry?: number
   max_retries?: number
+}
+
+export interface ToolResultFields {
+  result_preview?: string
+  failure_class?: string
+  retryable?: boolean
+  is_error?: boolean
 }
 
 const canonicalTypes = new Set<StreamEvent['type']>([
@@ -129,7 +136,11 @@ export function adaptLegacyEvents(raw: Record<string, unknown>, context?: Stream
         tool_call_id: legacyToolCallId(raw, context),
         result_len: asNumber(raw.result_len, 0),
         ...(typeof raw.result === 'string' && raw.result !== '' ? { result: raw.result } : {}),
-        status: 'ok',
+        ...(typeof raw.result_preview === 'string' && raw.result_preview !== '' ? { result_preview: raw.result_preview } : {}),
+        ...(typeof raw.failure_class === 'string' && raw.failure_class !== '' ? { failure_class: raw.failure_class } : {}),
+        ...(typeof raw.retryable === 'boolean' ? { retryable: raw.retryable } : {}),
+        ...(typeof raw.is_error === 'boolean' ? { is_error: raw.is_error } : {}),
+        status: typeof raw.is_error === 'boolean' && raw.is_error ? 'error' : 'ok',
         duration_ms: asNumber(raw.duration_ms, 0),
       }]
     case 'status':

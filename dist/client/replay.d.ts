@@ -8,8 +8,12 @@ export interface TimelineToolCall {
     startedAt?: string;
     completedAt?: string;
     output: string;
+    resultPreview?: string;
     resultLen?: number;
-    status?: 'ok' | 'error';
+    status?: 'ok' | 'error' | string;
+    failureClass?: string;
+    retryable?: boolean;
+    isError?: boolean;
     durationMs?: number;
 }
 export interface TimelinePermission {

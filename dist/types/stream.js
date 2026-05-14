@@ -78,7 +78,11 @@ export function adaptLegacyEvents(raw, context) {
                     tool_call_id: legacyToolCallId(raw, context),
                     result_len: asNumber(raw.result_len, 0),
                     ...(typeof raw.result === 'string' && raw.result !== '' ? { result: raw.result } : {}),
-                    status: 'ok',
+                    ...(typeof raw.result_preview === 'string' && raw.result_preview !== '' ? { result_preview: raw.result_preview } : {}),
+                    ...(typeof raw.failure_class === 'string' && raw.failure_class !== '' ? { failure_class: raw.failure_class } : {}),
+                    ...(typeof raw.retryable === 'boolean' ? { retryable: raw.retryable } : {}),
+                    ...(typeof raw.is_error === 'boolean' ? { is_error: raw.is_error } : {}),
+                    status: typeof raw.is_error === 'boolean' && raw.is_error ? 'error' : 'ok',
                     duration_ms: asNumber(raw.duration_ms, 0),
                 }];
         case 'status':

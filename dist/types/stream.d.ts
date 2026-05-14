@@ -29,16 +29,16 @@ export type StreamEvent = (StreamEventMeta & {
     tool: string;
     args: unknown;
     iteration: number;
-}) | (StreamEventMeta & {
+}) | (StreamEventMeta & ToolResultFields & {
     type: 'tool.output.delta';
     tool_call_id: string;
     delta: string;
-}) | (StreamEventMeta & {
+}) | (StreamEventMeta & ToolResultFields & {
     type: 'tool.completed';
     tool_call_id: string;
     result_len: number;
     result?: string;
-    status: 'ok' | 'error';
+    status: 'ok' | 'error' | string;
     duration_ms: number;
 }) | (StreamEventMeta & {
     type: 'permission.requested';
@@ -79,6 +79,12 @@ export interface UXStatusFields {
     diff?: string;
     retry?: number;
     max_retries?: number;
+}
+export interface ToolResultFields {
+    result_preview?: string;
+    failure_class?: string;
+    retryable?: boolean;
+    is_error?: boolean;
 }
 export declare function withStreamEventMeta(event: StreamEvent, meta: StreamEventMeta): StreamEvent;
 export declare function sequenceStreamEvent(event: StreamEvent, seq: number, ts?: string): SequencedStreamEvent;
