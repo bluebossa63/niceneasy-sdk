@@ -30,6 +30,21 @@ describe('SDK UI view models', () => {
     assert.equal(view.actions.length, 0)
   })
 
+  it('keeps permission risk separate from the human-readable reason', () => {
+    const view = permissionToViewModel({
+      id: 'perm-risk',
+      agent: 'codex',
+      tool: 'shell',
+      riskLevel: 'high',
+      reason: 'needs to run the test suite',
+      requestedAt: '2026-05-30T00:00:00Z',
+      state: 'pending',
+    })
+
+    assert.equal(view.riskLabel, 'high')
+    assert.equal(view.isPending, true)
+  })
+
   it('identifies nudges and diff statuses as durable UI events', () => {
     const diffStatus = timeline.statuses.find((status) => status.uxEventKind === 'tool.inline_diff')
     const diffView = statusToViewModel(diffStatus)

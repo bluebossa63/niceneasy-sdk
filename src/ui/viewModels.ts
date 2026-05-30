@@ -77,7 +77,7 @@ export function permissionToViewModel(permission: PermissionRequest | TimelinePe
   const decision = 'decision' in permission ? permission.decision : undefined
   const riskLabel =
     'agent' in permission
-      ? permission.reason ?? permission.riskLevel
+      ? permission.riskLevel
       : permission.risk
   const requestedAt = permission.requestedAt
   const resolvedAt =

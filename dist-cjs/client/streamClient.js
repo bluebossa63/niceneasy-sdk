@@ -1,5 +1,8 @@
-import { adaptLegacyEvents, sequenceStreamEvent } from '../types/stream.js';
-import { createSseParser } from './sse.js';
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.streamChat = streamChat;
+const stream_js_1 = require("../types/stream.js");
+const sse_js_1 = require("./sse.js");
 const MAX_RETRIES = 3;
 const INITIAL_BACKOFF_MS = 250;
 function sleep(ms) {
@@ -16,8 +19,8 @@ function isAbortError(err, signal) {
 }
 function emitAdapted(raw, options, context) {
     let done = false;
-    for (const event of adaptLegacyEvents(raw, context)) {
-        const sequenced = sequenceStreamEvent(event, context.seq ?? 0);
+    for (const event of (0, stream_js_1.adaptLegacyEvents)(raw, context)) {
+        const sequenced = (0, stream_js_1.sequenceStreamEvent)(event, context.seq ?? 0);
         context.seq = sequenced.seq + 1;
         if (sequenced.run_id)
             context.run_id = sequenced.run_id;
@@ -42,7 +45,7 @@ async function readStream(response, options) {
     const decoder = new TextDecoder();
     let done = false;
     const context = { seq: 0, defaultMessageId: 'main' };
-    const parser = createSseParser((value, message) => {
+    const parser = (0, sse_js_1.createSseParser)((value, message) => {
         if (!value || typeof value !== 'object' || Array.isArray(value)) {
             return null;
         }
@@ -74,7 +77,7 @@ function streamUrl(baseUrl) {
     }
     return new URL('/api/chat/stream', origin);
 }
-export async function streamChat(request, options) {
+async function streamChat(request, options) {
     let attempt = 0;
     let lastError;
     while (attempt <= MAX_RETRIES) {

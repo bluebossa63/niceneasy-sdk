@@ -6,17 +6,25 @@
   "types": "dist/index.d.ts",
   "files": [
     "dist",
+    "dist-cjs",
     "src"
   ],
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist-cjs/index.d.ts",
+        "default": "./dist-cjs/index.js"
+      },
       "default": "./dist/index.js"
     }
   },
   "scripts": {
-    "build": "tsc",
-    "test": "npm run build && node --test tests/*.test.mjs",
+    "build": "tsc && tsc -p tsconfig.cjs.json && node scripts/write-cjs-package.mjs",
+    "test": "npm run build && node --test tests/*.test.mjs tests/*.test.cjs",
     "prepublishOnly": "npm run build"
   },
   "devDependencies": {

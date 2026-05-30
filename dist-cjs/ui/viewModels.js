@@ -1,9 +1,21 @@
-export const permissionActions = [
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.permissionActions = void 0;
+exports.permissionDecisionLabel = permissionDecisionLabel;
+exports.permissionTone = permissionTone;
+exports.permissionToViewModel = permissionToViewModel;
+exports.isTransientWorkingStatus = isTransientWorkingStatus;
+exports.statusLabel = statusLabel;
+exports.statusTone = statusTone;
+exports.statusToViewModel = statusToViewModel;
+exports.toolOutputToViewModel = toolOutputToViewModel;
+exports.streamEventToUxViewModel = streamEventToUxViewModel;
+exports.permissionActions = [
     { decision: 'once', label: 'Allow once', tone: 'success' },
     { decision: 'always', label: 'Allow always', tone: 'success' },
     { decision: 'deny', label: 'Deny', tone: 'danger' },
 ];
-export function permissionDecisionLabel(decision) {
+function permissionDecisionLabel(decision) {
     if (decision === 'once') {
         return 'allowed once';
     }
@@ -15,7 +27,7 @@ export function permissionDecisionLabel(decision) {
     }
     return 'pending';
 }
-export function permissionTone(decision) {
+function permissionTone(decision) {
     if (decision === 'deny') {
         return 'danger';
     }
@@ -24,7 +36,7 @@ export function permissionTone(decision) {
     }
     return 'warning';
 }
-export function permissionToViewModel(permission) {
+function permissionToViewModel(permission) {
     const decision = 'decision' in permission ? permission.decision : undefined;
     const riskLabel = 'agent' in permission
         ? permission.riskLevel
@@ -43,14 +55,14 @@ export function permissionToViewModel(permission) {
         riskLabel,
         requestedAt,
         resolvedAt,
-        actions: decision ? [] : permissionActions,
+        actions: decision ? [] : exports.permissionActions,
     };
 }
-export function isTransientWorkingStatus(status) {
+function isTransientWorkingStatus(status) {
     const message = (status.message ?? '').toLowerCase();
     return message.startsWith('working') || message.startsWith('running ');
 }
-export function statusLabel(uxEventKind) {
+function statusLabel(uxEventKind) {
     if (uxEventKind === 'tool.inline_diff') {
         return 'review diff';
     }
@@ -59,7 +71,7 @@ export function statusLabel(uxEventKind) {
     }
     return uxEventKind ?? 'status';
 }
-export function statusTone(uxEventKind) {
+function statusTone(uxEventKind) {
     if (uxEventKind === 'warning') {
         return 'warning';
     }
@@ -68,7 +80,7 @@ export function statusTone(uxEventKind) {
     }
     return 'neutral';
 }
-export function statusToViewModel(status) {
+function statusToViewModel(status) {
     const isTransient = isTransientWorkingStatus(status);
     return {
         label: statusLabel(status.uxEventKind),
@@ -77,7 +89,7 @@ export function statusToViewModel(status) {
         isTransient,
     };
 }
-export function toolOutputToViewModel(tool) {
+function toolOutputToViewModel(tool) {
     const output = tool.output || tool.resultPreview || '';
     return {
         hasOutput: output.length > 0,
@@ -87,7 +99,7 @@ export function toolOutputToViewModel(tool) {
         failureLabel: tool.failureClass,
     };
 }
-export function streamEventToUxViewModel(event) {
+function streamEventToUxViewModel(event) {
     if (event.type === 'permission.requested') {
         return {
             kind: 'permission',

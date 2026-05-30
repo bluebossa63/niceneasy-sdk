@@ -25,6 +25,16 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
+function isAbortError(err: unknown, signal?: AbortSignal): boolean {
+  if (signal?.aborted) {
+    return true
+  }
+  if (!(err instanceof Error)) {
+    return false
+  }
+  return err.name === 'AbortError' || /aborted/i.test(err.message)
+}
+
 function emitAdapted(
   raw: Record<string, unknown>,
   options: StreamClientOptions,
@@ -120,6 +130,10 @@ export async function streamChat(
       return
     } catch (err) {
       lastError = err instanceof Error ? err : new Error(String(err))
+      if (isAbortError(err, options.signal)) {
+        options.onError?.(lastError)
+        throw lastError
+      }
       if (attempt === MAX_RETRIES) {
         options.onError?.(lastError)
         throw lastError
