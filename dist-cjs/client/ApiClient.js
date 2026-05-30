@@ -283,5 +283,11 @@ class ApiClient {
         const response = await this.request(`/api/runs?limit=${encodeURIComponent(String(limit))}`, options);
         return response.runs;
     }
+    abortRun(runId, options) {
+        return this.request(`/api/runs/${encodeURIComponent(runId)}/abort`, {
+            ...options,
+            method: 'POST',
+        });
+    }
 }
 exports.ApiClient = ApiClient;

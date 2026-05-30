@@ -410,4 +410,11 @@ export class ApiClient {
     )
     return response.runs
   }
+
+  abortRun(runId: string, options?: RequestInit & { timeoutMs?: number }): Promise<{ run_id: string; aborted: boolean; message?: string }> {
+    return this.request(`/api/runs/${encodeURIComponent(runId)}/abort`, {
+      ...options,
+      method: 'POST',
+    })
+  }
 }

@@ -66,4 +66,11 @@ export declare class ApiClient {
     } & RequestInit & {
         timeoutMs?: number;
     }): Promise<RunSummary[]>;
+    abortRun(runId: string, options?: RequestInit & {
+        timeoutMs?: number;
+    }): Promise<{
+        run_id: string;
+        aborted: boolean;
+        message?: string;
+    }>;
 }
