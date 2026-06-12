@@ -1,5 +1,5 @@
 import { adaptLegacyEvents, sequenceStreamEvent, type SequencedStreamEvent, type StreamEvent, type StreamEventContext } from '../types/stream.js'
-import { createSseParser } from './sse.js'
+import { createSseParser, type SseJsonParseError, type SseMessage } from './sse.js'
 
 export interface StreamClientOptions {
   baseUrl?: string
@@ -8,6 +8,12 @@ export interface StreamClientOptions {
   onEvent: (event: SequencedStreamEvent) => void
   onError?: (err: Error) => void
   onDone?: () => void
+  /**
+   * Non-fatal diagnostic for malformed SSE JSON messages (S33-03). The
+   * stream continues with the remaining messages; when omitted, the SDK
+   * logs a console warning.
+   */
+  onParseError?: (error: SseJsonParseError, message: SseMessage) => void
 }
 
 export interface StreamChatRequest {
@@ -74,7 +80,7 @@ async function readStream(response: Response, options: StreamClientOptions): Pro
       raw.type = message.event
     }
     return raw
-  })
+  }, { onParseError: options.onParseError })
 
   for (;;) {
     const result = await reader.read()

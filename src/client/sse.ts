@@ -115,6 +115,7 @@ export function parseSseMessages(input: string): SseParseResult {
 export function parseSseJson<T = Record<string, unknown>>(
   input: string,
   parser: SseJsonParser<T> = (value) => (value && typeof value === 'object' ? value as T : null),
+  onParseError?: (error: SseJsonParseError, message: SseMessage) => void,
 ): { events: T[]; rest: string } {
   const { messages, rest } = parseSseMessages(input)
   const events: T[] = []
@@ -124,7 +125,20 @@ export function parseSseJson<T = Record<string, unknown>>(
     if (data === '' || data === '[DONE]') {
       continue
     }
-    events.push(parser(parseJsonData(data), message) as T)
+    let value: unknown
+    try {
+      value = parseJsonData(data)
+    } catch (err) {
+      // Recovery path (S33-03): one malformed message must not abort the
+      // remaining messages in the chunk. Without a handler we preserve the
+      // legacy throwing behavior for direct callers.
+      if (onParseError && err instanceof SseJsonParseError) {
+        onParseError(err, message)
+        continue
+      }
+      throw err
+    }
+    events.push(parser(value, message) as T)
   }
 
   return { events: events.filter((event): event is T => event !== null), rest }
@@ -138,19 +152,34 @@ function parseJsonData(data: string): unknown {
   }
 }
 
+export interface SseParserOptions {
+  /**
+   * Called when a message's JSON payload is malformed. The parser skips the
+   * message, keeps its buffer consistent, and continues with the rest of the
+   * stream (S33-03). Defaults to a console warning so failures stay visible.
+   */
+  onParseError?: (error: SseJsonParseError, message: SseMessage) => void
+}
+
+function defaultParseErrorHandler(error: SseJsonParseError): void {
+  console.warn(`[niceneasy-sdk] skipped malformed SSE message: ${error.message}`)
+}
+
 export function createSseParser<T = Record<string, unknown>>(
   parser?: SseJsonParser<T>,
+  options?: SseParserOptions,
 ): {
   push(chunk: string): T[]
   flush(): T[]
   reset(): void
 } {
   let buffer = ''
+  const onParseError = options?.onParseError ?? defaultParseErrorHandler
 
   return {
     push(chunk: string): T[] {
       buffer += chunk
-      const parsed = parseSseJson<T>(buffer, parser)
+      const parsed = parseSseJson<T>(buffer, parser, onParseError)
       buffer = parsed.rest
       return parsed.events
     },
@@ -166,7 +195,16 @@ export function createSseParser<T = Record<string, unknown>>(
         return []
       }
 
-      const value = parseJsonData(message.data)
+      let value: unknown
+      try {
+        value = parseJsonData(message.data)
+      } catch (err) {
+        if (err instanceof SseJsonParseError) {
+          onParseError(err, message)
+          return []
+        }
+        throw err
+      }
       const event = parser ? parser(value, message) : (value && typeof value === 'object' ? value as T : null)
       return event ? [event] : []
     },

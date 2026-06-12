@@ -93,7 +93,7 @@ function parseSseMessages(input) {
     }
     return { messages, rest };
 }
-function parseSseJson(input, parser = (value) => (value && typeof value === 'object' ? value : null)) {
+function parseSseJson(input, parser = (value) => (value && typeof value === 'object' ? value : null), onParseError) {
     const { messages, rest } = parseSseMessages(input);
     const events = [];
     for (const message of messages) {
@@ -101,7 +101,21 @@ function parseSseJson(input, parser = (value) => (value && typeof value === 'obj
         if (data === '' || data === '[DONE]') {
             continue;
         }
-        events.push(parser(parseJsonData(data), message));
+        let value;
+        try {
+            value = parseJsonData(data);
+        }
+        catch (err) {
+            // Recovery path (S33-03): one malformed message must not abort the
+            // remaining messages in the chunk. Without a handler we preserve the
+            // legacy throwing behavior for direct callers.
+            if (onParseError && err instanceof SseJsonParseError) {
+                onParseError(err, message);
+                continue;
+            }
+            throw err;
+        }
+        events.push(parser(value, message));
     }
     return { events: events.filter((event) => event !== null), rest };
 }
@@ -113,12 +127,16 @@ function parseJsonData(data) {
         throw new SseJsonParseError(data, err);
     }
 }
-function createSseParser(parser) {
+function defaultParseErrorHandler(error) {
+    console.warn(`[niceneasy-sdk] skipped malformed SSE message: ${error.message}`);
+}
+function createSseParser(parser, options) {
     let buffer = '';
+    const onParseError = options?.onParseError ?? defaultParseErrorHandler;
     return {
         push(chunk) {
             buffer += chunk;
-            const parsed = parseSseJson(buffer, parser);
+            const parsed = parseSseJson(buffer, parser, onParseError);
             buffer = parsed.rest;
             return parsed.events;
         },
@@ -132,7 +150,17 @@ function createSseParser(parser) {
             if (!message || message.data.trim() === '' || message.data.trim() === '[DONE]') {
                 return [];
             }
-            const value = parseJsonData(message.data);
+            let value;
+            try {
+                value = parseJsonData(message.data);
+            }
+            catch (err) {
+                if (err instanceof SseJsonParseError) {
+                    onParseError(err, message);
+                    return [];
+                }
+                throw err;
+            }
             const event = parser ? parser(value, message) : (value && typeof value === 'object' ? value : null);
             return event ? [event] : [];
         },

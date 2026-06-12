@@ -54,7 +54,7 @@ async function readStream(response, options) {
             raw.type = message.event;
         }
         return raw;
-    });
+    }, { onParseError: options.onParseError });
     for (;;) {
         const result = await reader.read();
         if (result.done) {
