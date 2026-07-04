@@ -77,4 +77,35 @@ describe('SDK UI view models', () => {
     assert.equal(streamEventToUxViewModel(statusEvent).kind, 'status')
     assert.equal(streamEventToUxViewModel(outputEvent).kind, 'tool_output')
   })
+
+  it('strips standalone legacy "(tool call)" placeholders from assistant narration', () => {
+    const deltas = [
+      'Let me look at some value names.\n\n',
+      '(tool call)\n',
+      'Now checking sentiment on the candidates.\n\n',
+      '(tool call)\n',
+      'Here is the summary.',
+    ]
+    const placeholderRows = deltas.map((delta, index) => ({
+      seq: index + 1,
+      event_type: 'text.delta',
+      payload: {
+        type: 'text.delta',
+        run_id: 'run-strip-001',
+        session_id: 'session-strip-001',
+        message_id: 'message-strip-001',
+        delta,
+        seq: index + 1,
+        ts: `2026-07-04T10:00:00.0${index}0Z`,
+      },
+      ts: `2026-07-04T10:00:00.0${index}0Z`,
+    }))
+    const stripped = runEventsToTimeline(placeholderRows)
+
+    assert.equal(stripped.assistantText.includes('(tool call)'), false)
+    assert.match(stripped.assistantText, /value names/)
+    assert.match(stripped.assistantText, /checking sentiment/)
+    assert.match(stripped.assistantText, /Here is the summary\.$/)
+    assert.equal(/\n{3,}/.test(stripped.assistantText), false)
+  })
 })
