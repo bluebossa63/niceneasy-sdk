@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { buildRunTimeline, streamChat, streamEventToUxViewModel } from '../dist/index.js'
+import { buildRunTimeline, sequenceStreamEvent, streamChat, streamEventToUxViewModel } from '../dist/index.js'
 
 // End-to-end pipeline test (fsi-ai-agent sprint S33-06).
 //
@@ -184,5 +184,40 @@ describe('streaming pipeline end-to-end', () => {
     const failureView = views.find((view) => view.kind === 'tool_output' && view.output.tone === 'danger')
     assert.ok(failureView, 'failing tool output must surface with danger tone')
     assert.equal(failureView.output.failureLabel, 'permission_denied')
+  })
+
+  it('separates assistant text and reasoning across tool-call rounds', () => {
+    const seqOf = (payload, seq) => sequenceStreamEvent(payload, seq, '2026-07-04T00:00:00Z')
+    const events = [
+      seqOf({ type: 'text.delta', message_id: 'main', delta: "I'll research AAPL in parallel." }, 0),
+      seqOf({ type: 'reasoning.delta', message_id: 'main', delta: 'Check the quote first.' }, 1),
+      seqOf({ type: 'tool.started', tool_call_id: 'c1', tool: 'market_data_quote', args: {}, iteration: 0 }, 2),
+      seqOf({ type: 'tool.completed', tool_call_id: 'c1', tool: 'market_data_quote', status: 'completed', duration_ms: 450 }, 3),
+      seqOf({ type: 'reasoning.delta', message_id: 'main', delta: 'The quote is stale; pull bars.' }, 4),
+      seqOf({ type: 'text.delta', message_id: 'main', delta: 'The quote is stale.' }, 5),
+      seqOf({ type: 'tool.started', tool_call_id: 'c2', tool: 'market_data_bars', args: {}, iteration: 1 }, 6),
+      seqOf({ type: 'tool.completed', tool_call_id: 'c2', tool: 'market_data_bars', status: 'completed', duration_ms: 155 }, 7),
+      seqOf({ type: 'text.delta', message_id: 'main', delta: "Here's the snapshot: " }, 8),
+      seqOf({ type: 'text.delta', message_id: 'main', delta: 'price is 293.' }, 9),
+    ]
+
+    const timeline = buildRunTimeline(events)
+
+    // Round boundaries get a blank-line separator; intra-round deltas stay glued.
+    assert.equal(
+      timeline.assistantText,
+      "I'll research AAPL in parallel.\n\nThe quote is stale.\n\nHere's the snapshot: price is 293.",
+    )
+    assert.equal(timeline.reasoningText, 'Check the quote first.\n\nThe quote is stale; pull bars.')
+    assert.equal(timeline.tools.length, 2, 'tool rows remain de-duped by id')
+  })
+
+  it('does not insert breaks within a single tool-free round', () => {
+    const seqOf = (payload, seq) => sequenceStreamEvent(payload, seq, '2026-07-04T00:00:00Z')
+    const timeline = buildRunTimeline([
+      seqOf({ type: 'text.delta', message_id: 'main', delta: 'Hello ' }, 0),
+      seqOf({ type: 'text.delta', message_id: 'main', delta: 'world.' }, 1),
+    ])
+    assert.equal(timeline.assistantText, 'Hello world.')
   })
 })

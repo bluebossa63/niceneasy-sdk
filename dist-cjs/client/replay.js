@@ -9,6 +9,13 @@ function normalizeRunEvents(rows) {
         .sort((left, right) => left.seq - right.seq)
         .map((row) => (0, stream_js_1.sequenceStreamEvent)(row.payload, row.seq, row.ts));
 }
+function withParagraphBreak(text) {
+    if (text.length === 0)
+        return text;
+    if (/\n[ \t]*\n[ \t]*$/.test(text))
+        return text;
+    return `${text.replace(/\s+$/, '')}\n\n`;
+}
 function buildRunTimeline(events) {
     const tools = new Map();
     const permissions = new Map();
@@ -16,6 +23,13 @@ function buildRunTimeline(events) {
     const errors = [];
     let assistantText = '';
     let reasoningText = '';
+    // A tool call between two content segments marks a round boundary. Models emit
+    // the trailing text of one round and the leading text of the next as separate
+    // delta streams with no separator, so concatenating them raw glues sentences
+    // together (e.g. "in parallel.The quote is stale"). Insert a paragraph break at
+    // those boundaries while leaving intra-round deltas untouched.
+    let pendingTextBreak = false;
+    let pendingReasoningBreak = false;
     let usage;
     let finish;
     let sessionId;
@@ -35,12 +49,22 @@ function buildRunTimeline(events) {
                 messageId = event.message_id;
                 break;
             case 'text.delta':
+                if (pendingTextBreak) {
+                    assistantText = withParagraphBreak(assistantText);
+                    pendingTextBreak = false;
+                }
                 assistantText += event.delta;
                 break;
             case 'reasoning.delta':
+                if (pendingReasoningBreak) {
+                    reasoningText = withParagraphBreak(reasoningText);
+                    pendingReasoningBreak = false;
+                }
                 reasoningText += event.delta;
                 break;
             case 'tool.started':
+                pendingTextBreak = assistantText.length > 0;
+                pendingReasoningBreak = reasoningText.length > 0;
                 tools.set(event.tool_call_id, {
                     id: event.tool_call_id,
                     tool: event.tool,
@@ -71,6 +95,8 @@ function buildRunTimeline(events) {
                 break;
             }
             case 'tool.completed': {
+                pendingTextBreak = pendingTextBreak || assistantText.length > 0;
+                pendingReasoningBreak = pendingReasoningBreak || reasoningText.length > 0;
                 const existing = tools.get(event.tool_call_id);
                 tools.set(event.tool_call_id, {
                     id: event.tool_call_id,

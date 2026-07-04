@@ -66,6 +66,12 @@ export function normalizeRunEvents(rows: RunEvent[]): SequencedStreamEvent[] {
     .map((row) => sequenceStreamEvent(row.payload, row.seq, row.ts))
 }
 
+function withParagraphBreak(text: string): string {
+  if (text.length === 0) return text
+  if (/\n[ \t]*\n[ \t]*$/.test(text)) return text
+  return `${text.replace(/\s+$/, '')}\n\n`
+}
+
 export function buildRunTimeline(events: readonly SequencedStreamEvent[]): RunTimelineModel {
   const tools = new Map<string, TimelineToolCall>()
   const permissions = new Map<string, TimelinePermission>()
@@ -73,6 +79,13 @@ export function buildRunTimeline(events: readonly SequencedStreamEvent[]): RunTi
   const errors: string[] = []
   let assistantText = ''
   let reasoningText = ''
+  // A tool call between two content segments marks a round boundary. Models emit
+  // the trailing text of one round and the leading text of the next as separate
+  // delta streams with no separator, so concatenating them raw glues sentences
+  // together (e.g. "in parallel.The quote is stale"). Insert a paragraph break at
+  // those boundaries while leaving intra-round deltas untouched.
+  let pendingTextBreak = false
+  let pendingReasoningBreak = false
   let usage: Extract<StreamEvent, { type: 'usage' }> | undefined
   let finish: Extract<SequencedStreamEvent, { type: 'finish' }> | undefined
   let sessionId: string | undefined
@@ -94,12 +107,22 @@ export function buildRunTimeline(events: readonly SequencedStreamEvent[]): RunTi
         messageId = event.message_id
         break
       case 'text.delta':
+        if (pendingTextBreak) {
+          assistantText = withParagraphBreak(assistantText)
+          pendingTextBreak = false
+        }
         assistantText += event.delta
         break
       case 'reasoning.delta':
+        if (pendingReasoningBreak) {
+          reasoningText = withParagraphBreak(reasoningText)
+          pendingReasoningBreak = false
+        }
         reasoningText += event.delta
         break
       case 'tool.started':
+        pendingTextBreak = assistantText.length > 0
+        pendingReasoningBreak = reasoningText.length > 0
         tools.set(event.tool_call_id, {
           id: event.tool_call_id,
           tool: event.tool,
@@ -130,6 +153,8 @@ export function buildRunTimeline(events: readonly SequencedStreamEvent[]): RunTi
         break
       }
       case 'tool.completed': {
+        pendingTextBreak = pendingTextBreak || assistantText.length > 0
+        pendingReasoningBreak = pendingReasoningBreak || reasoningText.length > 0
         const existing = tools.get(event.tool_call_id)
         tools.set(event.tool_call_id, {
           id: event.tool_call_id,
