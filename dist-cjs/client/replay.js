@@ -16,6 +16,23 @@ function withParagraphBreak(text) {
         return text;
     return `${text.replace(/\s+$/, '')}\n\n`;
 }
+// The runtime stores a placeholder as the content of an assistant turn that only
+// issued a tool call (providers reject an empty assistant turn that carries
+// tool_calls). Some models imitate a readable placeholder and echo it back as
+// narration on later turns, so a literal "(tool call)" can leak into the stream.
+// Strip any standalone occurrence defensively so it never reaches the UI, even
+// for in-flight or legacy sessions produced before the runtime placeholder was
+// neutralized. Only whole-segment matches are removed; prose that merely
+// mentions a tool call is left untouched.
+function stripToolCallPlaceholder(text) {
+    if (!text.includes('(tool call)'))
+        return text;
+    const cleaned = text
+        .replace(/(^|\n)[ \t]*\(tool call\)[ \t]*(?=\n|$)/g, '$1')
+        .replace(/\n{3,}/g, '\n\n')
+        .replace(/^\s+|\s+$/g, '');
+    return cleaned;
+}
 function buildRunTimeline(events) {
     const tools = new Map();
     const permissions = new Map();
@@ -166,7 +183,7 @@ function buildRunTimeline(events) {
     }
     return {
         events: [...events],
-        assistantText,
+        assistantText: stripToolCallPlaceholder(assistantText),
         reasoningText,
         tools: [...tools.values()],
         permissions: [...permissions.values()],
