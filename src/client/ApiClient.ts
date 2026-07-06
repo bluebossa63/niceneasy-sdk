@@ -67,7 +67,13 @@ export interface ApiClientOptions {
 }
 
 const DEFAULT_TIMEOUT_MS = 15_000
-const CHAT_TIMEOUT_MS = 120_000
+export const CHAT_TRANSPORT_GRACE_MS = 15_000
+
+function chatTransportTimeoutMs(timeoutSeconds: number | undefined): number | undefined {
+  return timeoutSeconds && timeoutSeconds > 0
+    ? timeoutSeconds * 1000 + CHAT_TRANSPORT_GRACE_MS
+    : undefined
+}
 
 function resolveFetch(fetchImpl?: typeof fetch): typeof fetch | undefined {
   if (fetchImpl) {
@@ -110,9 +116,9 @@ export class ApiClient {
     this.fetchImpl = resolveFetch(options.fetch)
   }
 
-  async request<T>(path: string, options?: RequestInit & { timeoutMs?: number }): Promise<T> {
+  async request<T>(path: string, options?: RequestInit & { timeoutMs?: number | null }): Promise<T> {
     const url = new URL(path, `${this.baseUrl}/`)
-    const timeoutMs = options?.timeoutMs ?? this.timeoutMs
+    const timeoutMs = options?.timeoutMs === null ? undefined : options?.timeoutMs ?? this.timeoutMs
     const headers = {
       'Content-Type': 'application/json',
       ...this.headers,
@@ -124,7 +130,7 @@ export class ApiClient {
     }
 
     const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), timeoutMs)
+    const timeout = timeoutMs === undefined ? undefined : setTimeout(() => controller.abort(), timeoutMs)
     const signal = options?.signal ?? controller.signal
     try {
       const response = await this.fetchImpl(url, { ...options, headers, signal })
@@ -134,13 +140,15 @@ export class ApiClient {
       }
       return parseJsonBody<T>(text) as T
     } finally {
-      clearTimeout(timeout)
+      if (timeout) {
+        clearTimeout(timeout)
+      }
     }
   }
 
   private async nodeRequest<T>(
     url: URL,
-    init: RequestInit & { timeoutMs: number },
+    init: RequestInit & { timeoutMs?: number },
   ): Promise<T> {
     const importNodeModule = new Function('specifier', 'return import(specifier)') as (
       specifier: string,
@@ -161,7 +169,7 @@ export class ApiClient {
 
     return await new Promise<T>((resolve, reject) => {
       const req = protocol.request(url, { method: init.method ?? 'GET', headers })
-      const timer = setTimeout(() => {
+      const timer = init.timeoutMs === undefined ? undefined : setTimeout(() => {
         req.destroy(new Error(`Request timed out after ${init.timeoutMs}ms`))
       }, init.timeoutMs)
 
@@ -171,7 +179,9 @@ export class ApiClient {
           chunks.push(typeof chunk === 'string' ? new TextEncoder().encode(chunk) : chunk as Uint8Array)
         })
         res.on('end', () => {
-          clearTimeout(timer)
+          if (timer) {
+            clearTimeout(timer)
+          }
           const responseBody = new TextDecoder().decode(concatUint8Arrays(chunks))
           const status = res.statusCode ?? 500
           const statusText = res.statusMessage ?? 'Unknown Error'
@@ -187,7 +197,9 @@ export class ApiClient {
         })
       })
       req.on('error', (err) => {
-        clearTimeout(timer)
+        if (timer) {
+          clearTimeout(timer)
+        }
         reject(err)
       })
       if (init.signal) {
@@ -233,7 +245,7 @@ export class ApiClient {
     return this.request('/api/chat', {
       method: 'POST',
       body: JSON.stringify(req),
-      timeoutMs: CHAT_TIMEOUT_MS,
+      timeoutMs: chatTransportTimeoutMs(req.timeout) ?? null,
       signal,
     })
   }
