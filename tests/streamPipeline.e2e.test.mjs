@@ -126,6 +126,13 @@ describe('streaming pipeline end-to-end', () => {
     const seqs = events.map((event) => event.seq)
     assert.deepEqual(seqs, [...seqs].sort((a, b) => a - b), 'sequence numbers must be monotonic')
 
+    const shellOutputEvent = events.find((event) => event.type === 'tool.output.delta' && event.tool_call_id === 'call-1')
+    const shellCompletedEvent = events.find((event) => event.type === 'tool.completed' && event.tool_call_id === 'call-1')
+    const writeCompletedEvent = events.find((event) => event.type === 'tool.completed' && event.tool_call_id === 'call-2')
+    assert.equal(shellOutputEvent?.tool, 'shell_exec', 'tool output must inherit the active tool name')
+    assert.equal(shellCompletedEvent?.tool, 'shell_exec', 'tool completion must inherit the active tool name')
+    assert.equal(writeCompletedEvent?.tool, 'write_file', 'later tool completion must inherit its own active tool name')
+
     // --- timeline projection (replay layer) ---
     const timeline = buildRunTimeline(events)
     assert.equal(timeline.sessionId, 'session-e2e-001')
@@ -183,6 +190,7 @@ describe('streaming pipeline end-to-end', () => {
 
     const failureView = views.find((view) => view.kind === 'tool_output' && view.output.tone === 'danger')
     assert.ok(failureView, 'failing tool output must surface with danger tone')
+    assert.equal(failureView.tool, 'write_file')
     assert.equal(failureView.output.failureLabel, 'permission_denied')
   })
 

@@ -54,6 +54,7 @@ function emitAdapted(
     if (sequenced.session_id) context.session_id = sequenced.session_id
     if (sequenced.message_id) context.message_id = sequenced.message_id
     if (sequenced.tool_call_id) context.tool_call_id = sequenced.tool_call_id
+    if ('tool' in sequenced && typeof sequenced.tool === 'string' && sequenced.tool) context.tool = sequenced.tool
     options.onEvent(sequenced)
     if (event.type === 'finish') {
       done = true

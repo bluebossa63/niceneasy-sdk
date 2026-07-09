@@ -153,7 +153,7 @@ export function buildRunTimeline(events: readonly SequencedStreamEvent[]): RunTi
         const existing = tools.get(event.tool_call_id)
         tools.set(event.tool_call_id, {
           id: event.tool_call_id,
-          tool: existing?.tool ?? 'unknown',
+          tool: event.tool ?? existing?.tool ?? 'unknown',
           args: existing?.args,
           iteration: existing?.iteration ?? 0,
           startedAt: existing?.startedAt,
@@ -175,7 +175,7 @@ export function buildRunTimeline(events: readonly SequencedStreamEvent[]): RunTi
         const existing = tools.get(event.tool_call_id)
         tools.set(event.tool_call_id, {
           id: event.tool_call_id,
-          tool: existing?.tool ?? 'unknown',
+          tool: event.tool ?? existing?.tool ?? 'unknown',
           args: existing?.args,
           iteration: existing?.iteration ?? 0,
           startedAt: existing?.startedAt,

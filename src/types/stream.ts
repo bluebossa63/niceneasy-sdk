@@ -27,6 +27,7 @@ export type SequencedStreamEvent = StreamEvent & Required<Pick<StreamEventMeta, 
 
 export interface StreamEventContext extends StreamEventMeta {
   defaultMessageId?: string
+  tool?: string
 }
 
 export type UXEventKind = 'tool.completed' | 'tool.inline_diff' | 'warning'
@@ -43,6 +44,8 @@ export interface UXStatusFields {
 }
 
 export interface ToolResultFields {
+  tool?: string
+  iteration?: number
   result_preview?: string
   failure_class?: string
   retryable?: boolean
@@ -134,6 +137,8 @@ export function adaptLegacyEvents(raw: Record<string, unknown>, context?: Stream
         ...meta,
         type: 'tool.completed',
         tool_call_id: legacyToolCallId(raw, context),
+        ...(typeof raw.tool === 'string' && raw.tool !== '' ? { tool: raw.tool } : context?.tool ? { tool: context.tool } : {}),
+        ...(typeof raw.iteration === 'number' && Number.isFinite(raw.iteration) ? { iteration: raw.iteration } : {}),
         result_len: asNumber(raw.result_len, 0),
         ...(typeof raw.result === 'string' && raw.result !== '' ? { result: raw.result } : {}),
         ...(typeof raw.result_preview === 'string' && raw.result_preview !== '' ? { result_preview: raw.result_preview } : {}),
@@ -184,7 +189,11 @@ export function adaptLegacyEvents(raw: Record<string, unknown>, context?: Stream
       }]
     default:
       if (canonicalTypes.has(raw.type as StreamEvent['type'])) {
-        return [withStreamEventMeta(raw as unknown as StreamEvent, meta)]
+        const event = withStreamEventMeta(raw as unknown as StreamEvent, meta)
+        if ((event.type === 'tool.output.delta' || event.type === 'tool.completed') && event.tool === undefined && context?.tool) {
+          return [{ ...event, tool: context.tool }]
+        }
+        return [event]
       }
       return []
   }

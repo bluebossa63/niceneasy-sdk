@@ -41,7 +41,7 @@ export interface ToolOutputViewModel {
 export type StreamUxViewModel =
   | { kind: 'permission'; permission: PermissionViewModel }
   | { kind: 'status'; status: StatusViewModel }
-  | { kind: 'tool_output'; output: ToolOutputViewModel }
+  | { kind: 'tool_output'; toolCallId: string; tool?: string; output: ToolOutputViewModel }
   | { kind: 'ignore' }
 
 export const permissionActions: PermissionActionView[] = [
@@ -184,6 +184,8 @@ export function streamEventToUxViewModel(event: StreamEvent): StreamUxViewModel 
   if (event.type === 'tool.output.delta') {
     return {
       kind: 'tool_output',
+      toolCallId: event.tool_call_id,
+      tool: event.tool,
       output: toolOutputToViewModel({
         output: event.delta,
         resultPreview: event.result_preview,
@@ -195,6 +197,8 @@ export function streamEventToUxViewModel(event: StreamEvent): StreamUxViewModel 
   if (event.type === 'tool.completed') {
     return {
       kind: 'tool_output',
+      toolCallId: event.tool_call_id,
+      tool: event.tool,
       output: toolOutputToViewModel({
         output: event.result,
         resultPreview: event.result_preview,
