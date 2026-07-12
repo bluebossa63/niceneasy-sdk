@@ -20,6 +20,160 @@
         "default": "./dist-cjs/index.js"
       },
       "default": "./dist/index.js"
+    },
+    "./client": {
+      "import": {
+        "types": "./dist/client/index.d.ts",
+        "default": "./dist/client/index.js"
+      },
+      "require": {
+        "types": "./dist-cjs/client/index.d.ts",
+        "default": "./dist-cjs/client/index.js"
+      },
+      "default": "./dist/client/index.js"
+    },
+    "./fixtures": {
+      "import": {
+        "types": "./dist/fixtures/index.d.ts",
+        "default": "./dist/fixtures/index.js"
+      },
+      "require": {
+        "types": "./dist-cjs/fixtures/index.d.ts",
+        "default": "./dist-cjs/fixtures/index.js"
+      },
+      "default": "./dist/fixtures/index.js"
+    },
+    "./http": {
+      "import": {
+        "types": "./dist/http/index.d.ts",
+        "default": "./dist/http/index.js"
+      },
+      "require": {
+        "types": "./dist-cjs/http/index.d.ts",
+        "default": "./dist-cjs/http/index.js"
+      },
+      "default": "./dist/http/index.js"
+    },
+    "./stream": {
+      "import": {
+        "types": "./dist/stream/index.d.ts",
+        "default": "./dist/stream/index.js"
+      },
+      "require": {
+        "types": "./dist-cjs/stream/index.d.ts",
+        "default": "./dist-cjs/stream/index.js"
+      },
+      "default": "./dist/stream/index.js"
+    },
+    "./timeline": {
+      "import": {
+        "types": "./dist/timeline/index.d.ts",
+        "default": "./dist/timeline/index.js"
+      },
+      "require": {
+        "types": "./dist-cjs/timeline/index.d.ts",
+        "default": "./dist-cjs/timeline/index.js"
+      },
+      "default": "./dist/timeline/index.js"
+    },
+    "./types": {
+      "import": {
+        "types": "./dist/types/index.d.ts",
+        "default": "./dist/types/index.js"
+      },
+      "require": {
+        "types": "./dist-cjs/types/index.d.ts",
+        "default": "./dist-cjs/types/index.js"
+      },
+      "default": "./dist/types/index.js"
+    },
+    "./ui": {
+      "import": {
+        "types": "./dist/ui/index.d.ts",
+        "default": "./dist/ui/index.js"
+      },
+      "require": {
+        "types": "./dist-cjs/ui/index.d.ts",
+        "default": "./dist-cjs/ui/index.js"
+      },
+      "default": "./dist/ui/index.js"
+    },
+    "./client/*": {
+      "import": {
+        "types": "./dist/client/*.d.ts",
+        "default": "./dist/client/*.js"
+      },
+      "require": {
+        "types": "./dist-cjs/client/*.d.ts",
+        "default": "./dist-cjs/client/*.js"
+      },
+      "default": "./dist/client/*.js"
+    },
+    "./fixtures/*": {
+      "import": {
+        "types": "./dist/fixtures/*.d.ts",
+        "default": "./dist/fixtures/*.js"
+      },
+      "require": {
+        "types": "./dist-cjs/fixtures/*.d.ts",
+        "default": "./dist-cjs/fixtures/*.js"
+      },
+      "default": "./dist/fixtures/*.js"
+    },
+    "./http/*": {
+      "import": {
+        "types": "./dist/http/*.d.ts",
+        "default": "./dist/http/*.js"
+      },
+      "require": {
+        "types": "./dist-cjs/http/*.d.ts",
+        "default": "./dist-cjs/http/*.js"
+      },
+      "default": "./dist/http/*.js"
+    },
+    "./stream/*": {
+      "import": {
+        "types": "./dist/stream/*.d.ts",
+        "default": "./dist/stream/*.js"
+      },
+      "require": {
+        "types": "./dist-cjs/stream/*.d.ts",
+        "default": "./dist-cjs/stream/*.js"
+      },
+      "default": "./dist/stream/*.js"
+    },
+    "./timeline/*": {
+      "import": {
+        "types": "./dist/timeline/*.d.ts",
+        "default": "./dist/timeline/*.js"
+      },
+      "require": {
+        "types": "./dist-cjs/timeline/*.d.ts",
+        "default": "./dist-cjs/timeline/*.js"
+      },
+      "default": "./dist/timeline/*.js"
+    },
+    "./types/*": {
+      "import": {
+        "types": "./dist/types/*.d.ts",
+        "default": "./dist/types/*.js"
+      },
+      "require": {
+        "types": "./dist-cjs/types/*.d.ts",
+        "default": "./dist-cjs/types/*.js"
+      },
+      "default": "./dist/types/*.js"
+    },
+    "./ui/*": {
+      "import": {
+        "types": "./dist/ui/*.d.ts",
+        "default": "./dist/ui/*.js"
+      },
+      "require": {
+        "types": "./dist-cjs/ui/*.d.ts",
+        "default": "./dist-cjs/ui/*.js"
+      },
+      "default": "./dist/ui/*.js"
     }
   },
   "scripts": {

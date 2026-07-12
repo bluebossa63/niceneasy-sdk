@@ -50,6 +50,7 @@ export interface TaskResponse {
   child_count?: number
 }
 
+/** @deprecated Use TaskResponse; Task is a compatibility alias for the response DTO. */
 export type Task = TaskResponse
 
 export interface TaskListResponse {

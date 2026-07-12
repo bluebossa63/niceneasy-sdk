@@ -118,30 +118,37 @@ export function parseSseJson<T = Record<string, unknown>>(
   onParseError?: (error: SseJsonParseError, message: SseMessage) => void,
 ): { events: T[]; rest: string } {
   const { messages, rest } = parseSseMessages(input)
-  const events: T[] = []
+  const events = messages
+    .map((message) => parseSseJsonMessage(message, parser, onParseError))
+    .filter((event): event is T => event !== null)
 
-  for (const message of messages) {
-    const data = message.data.trim()
-    if (data === '' || data === '[DONE]') {
-      continue
-    }
-    let value: unknown
-    try {
-      value = parseJsonData(data)
-    } catch (err) {
-      // Recovery path (S33-03): one malformed message must not abort the
-      // remaining messages in the chunk. Without a handler we preserve the
-      // legacy throwing behavior for direct callers.
-      if (onParseError && err instanceof SseJsonParseError) {
-        onParseError(err, message)
-        continue
-      }
-      throw err
-    }
-    events.push(parser(value, message) as T)
+  return { events, rest }
+}
+
+function parseSseJsonMessage<T>(
+  message: SseMessage,
+  parser: SseJsonParser<T>,
+  onParseError?: (error: SseJsonParseError, message: SseMessage) => void,
+): T | null {
+  const data = message.data.trim()
+  if (data === '' || data === '[DONE]') {
+    return null
   }
 
-  return { events: events.filter((event): event is T => event !== null), rest }
+  let value: unknown
+  try {
+    value = parseJsonData(data)
+  } catch (err) {
+    // Recovery path: one malformed message must not abort later messages.
+    // Without a handler, direct parseSseJson callers keep legacy throwing behavior.
+    if (onParseError && err instanceof SseJsonParseError) {
+      onParseError(err, message)
+      return null
+    }
+    throw err
+  }
+
+  return parser(value, message)
 }
 
 function parseJsonData(data: string): unknown {
@@ -191,21 +198,15 @@ export function createSseParser<T = Record<string, unknown>>(
 
       const message = parseSseMessage(buffer)
       buffer = ''
-      if (!message || message.data.trim() === '' || message.data.trim() === '[DONE]') {
+      if (!message) {
         return []
       }
 
-      let value: unknown
-      try {
-        value = parseJsonData(message.data)
-      } catch (err) {
-        if (err instanceof SseJsonParseError) {
-          onParseError(err, message)
-          return []
-        }
-        throw err
-      }
-      const event = parser ? parser(value, message) : (value && typeof value === 'object' ? value as T : null)
+      const event = parseSseJsonMessage(
+        message,
+        parser ?? ((value) => (value && typeof value === 'object' ? value as T : null)),
+        onParseError,
+      )
       return event ? [event] : []
     },
     reset(): void {

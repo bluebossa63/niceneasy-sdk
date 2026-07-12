@@ -1,0 +1,160 @@
+import type { ChatRequest } from '../types/chat.js'
+import type { SequencedStreamEvent, StreamEventContext } from '../types/stream.js'
+import { createSseParser, type SseJsonParseError, type SseMessage } from '../client/sse.js'
+import { sequenceStreamEvent } from './events.js'
+import { adaptLegacyEvents } from './legacyAdapter.js'
+
+export interface ChatStreamOptions {
+  baseUrl?: string
+  headers?: Record<string, string>
+  signal?: AbortSignal
+  onEvent: (event: SequencedStreamEvent) => void
+  onError?: (err: Error) => void
+  onDone?: () => void
+  /**
+   * Non-fatal diagnostic for malformed SSE JSON messages. The stream continues
+   * with the remaining messages; when omitted, the SDK logs a console warning.
+   */
+  onParseError?: (error: SseJsonParseError, message: SseMessage) => void
+}
+
+/** @deprecated Use ChatStreamOptions. */
+export type StreamClientOptions = ChatStreamOptions
+
+export interface StreamChatRequest extends ChatRequest {}
+
+const MAX_RETRIES = 3
+const INITIAL_BACKOFF_MS = 250
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+function isAbortError(err: unknown, signal?: AbortSignal): boolean {
+  if (signal?.aborted) {
+    return true
+  }
+  if (!(err instanceof Error)) {
+    return false
+  }
+  return err.name === 'AbortError' || /aborted/i.test(err.message)
+}
+
+function updateStreamContext(context: StreamEventContext, sequenced: SequencedStreamEvent): void {
+  context.seq = sequenced.seq + 1
+  if (sequenced.run_id) context.run_id = sequenced.run_id
+  if (sequenced.session_id) context.session_id = sequenced.session_id
+  if (sequenced.message_id) context.message_id = sequenced.message_id
+  if (sequenced.tool_call_id) context.tool_call_id = sequenced.tool_call_id
+  if ('tool' in sequenced && typeof sequenced.tool === 'string' && sequenced.tool) context.tool = sequenced.tool
+}
+
+function emitAdapted(
+  raw: Record<string, unknown>,
+  options: ChatStreamOptions,
+  context: StreamEventContext,
+): boolean {
+  let done = false
+  for (const event of adaptLegacyEvents(raw, context)) {
+    const sequenced = sequenceStreamEvent(event, context.seq ?? 0)
+    updateStreamContext(context, sequenced)
+    options.onEvent(sequenced)
+    if (event.type === 'finish') {
+      done = true
+    }
+  }
+  return done
+}
+
+async function readStream(response: Response, options: ChatStreamOptions): Promise<boolean> {
+  if (!response.body) {
+    throw new Error('stream response has no body')
+  }
+
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder()
+  let done = false
+  const context: StreamEventContext = { seq: 0, defaultMessageId: 'main' }
+  const parser = createSseParser<Record<string, unknown>>((value, message) => {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return null
+    }
+    const raw = { ...(value as Record<string, unknown>) }
+    if (raw.type === undefined && message.event) {
+      raw.type = message.event
+    }
+    return raw
+  }, { onParseError: options.onParseError })
+
+  for (;;) {
+    const result = await reader.read()
+    if (result.done) {
+      break
+    }
+    for (const raw of parser.push(decoder.decode(result.value, { stream: true }))) {
+      done = emitAdapted(raw, options, context) || done
+    }
+  }
+
+  for (const raw of parser.flush()) {
+    done = emitAdapted(raw, options, context) || done
+  }
+
+  return done
+}
+
+function streamUrl(baseUrl: string | undefined): URL {
+  const browserOrigin = (globalThis as { location?: { origin: string } }).location?.origin
+  const origin = baseUrl ? `${baseUrl.replace(/\/+$/, '')}/` : browserOrigin
+  if (!origin) {
+    throw new Error('baseUrl is required when no browser location is available')
+  }
+  return new URL('/api/chat/stream', origin)
+}
+
+export async function streamChat(
+  request: StreamChatRequest,
+  options: ChatStreamOptions,
+): Promise<void> {
+  let attempt = 0
+  let lastError: Error | undefined
+
+  while (attempt <= MAX_RETRIES) {
+    try {
+      const response = await fetch(streamUrl(options.baseUrl), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...options.headers },
+        body: JSON.stringify(request),
+        signal: options.signal,
+      })
+
+      if (!response.ok) {
+        const detail = await response.text()
+        throw new Error(`HTTP ${response.status}: ${detail || response.statusText}`)
+      }
+
+      const finished = await readStream(response, options)
+      if (finished) {
+        options.onDone?.()
+      }
+      return
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err))
+      if (isAbortError(err, options.signal)) {
+        options.onError?.(lastError)
+        throw lastError
+      }
+      if (attempt === MAX_RETRIES) {
+        options.onError?.(lastError)
+        throw lastError
+      }
+      await sleep(INITIAL_BACKOFF_MS * 2 ** attempt)
+      attempt += 1
+    }
+  }
+
+  if (lastError) {
+    options.onError?.(lastError)
+    throw lastError
+  }
+}

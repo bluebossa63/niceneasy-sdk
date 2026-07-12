@@ -1,4 +1,4 @@
-import type { ArtifactSummary } from './projects.js'
+import type { ArtifactSummary } from './artifacts.js'
 
 export type ApprovalState = 'pending' | 'approved' | 'changes_requested' | 'denied'
 export type ApprovalDecision = Exclude<ApprovalState, 'pending'>

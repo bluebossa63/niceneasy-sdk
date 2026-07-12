@@ -1,5 +1,5 @@
 import type { SequencedStreamEvent, StreamEvent } from '../types/stream.js'
-import { sequenceStreamEvent } from '../types/stream.js'
+import { sequenceStreamEvent } from '../stream/events.js'
 
 export const streamFixtureBase = {
   run_id: 'run-fixture-001',
@@ -157,9 +157,12 @@ export const legacyStreamPayloads: Array<Record<string, unknown>> = [
   { type: 'finish', session_id: streamFixtureBase.session_id, run_id: streamFixtureBase.run_id, tokens_in: 1200, tokens_out: 320, cost_usd: 0.0123, duration_ms: 1200 },
 ]
 
-export const sseFixtureStream = legacyStreamPayloads
+export const legacySseFixtureStream = legacyStreamPayloads
   .map((payload) => `event: ${String(payload.type)}\ndata: ${JSON.stringify(payload)}\n\n`)
   .join('')
+
+/** @deprecated Use legacySseFixtureStream; this fixture serializes legacy payloads. */
+export const sseFixtureStream = legacySseFixtureStream
 
 export const errorStreamEvent: StreamEvent = {
   type: 'finish',
