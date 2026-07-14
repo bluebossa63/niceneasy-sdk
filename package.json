@@ -1,7 +1,14 @@
 {
-  "name": "@niceneasy/agent-sdk",
+  "name": "@bluebossa63/agent-sdk",
   "version": "0.1.0",
   "type": "module",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bluebossa63/niceneasy-sdk.git"
+  },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
