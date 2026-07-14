@@ -1,0 +1,22 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
+  workflow_dispatch:
+
+jobs:
+  ci:
+    uses: bluebossa63/niceneasy-ci/.github/workflows/node-ci.yml@main
+    with:
+      node-version: "22"
+      build-command: "npm run build"
+      test-command: "npm test"
