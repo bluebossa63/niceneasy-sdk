@@ -19,4 +19,7 @@ jobs:
     with:
       node-version: "24"
       build-command: "npm run build"
-      test-command: "npm test"
+      # Emit coverage/lcov.info (Node built-in test runner + V8 coverage,
+      # source-mapped to src/*.ts) so the Sonar scan can ingest real coverage
+      # instead of a blind 0%. See sonar-project.properties lcov.reportPaths.
+      test-command: "npm run coverage"

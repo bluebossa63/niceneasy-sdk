@@ -6,6 +6,7 @@
     "outDir": "dist-cjs",
     "declaration": true,
     "declarationMap": false,
+    "sourceMap": true,
     "verbatimModuleSyntax": false
   },
   "include": ["src"]

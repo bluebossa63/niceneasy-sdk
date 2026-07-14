@@ -186,6 +186,7 @@
   "scripts": {
     "build": "tsc && tsc -p tsconfig.cjs.json && node scripts/write-cjs-package.mjs",
     "test": "npm run build && node --test tests/*.test.mjs tests/*.test.cjs",
+    "coverage": "npm run build && mkdir -p coverage && node --enable-source-maps --test --experimental-test-coverage --test-reporter=lcov --test-reporter-destination=coverage/lcov.info --test-reporter=spec --test-reporter-destination=stdout tests/*.test.mjs tests/*.test.cjs",
     "prepublishOnly": "npm run build"
   },
   "devDependencies": {
